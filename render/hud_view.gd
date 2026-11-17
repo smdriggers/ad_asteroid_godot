@@ -23,7 +23,7 @@ func _draw() -> void:
 	draw_string(font, Vector2(x, y), "Level %d" % main.level, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Config.HUD_TEXT_COLOR)
 	y += line
 
-	var scanning: bool = main.player_mode == "scan"
+	var scanning: bool = main.player_mode == "scan" or PlayerInput.touch_scan
 	var mode_text: String = "Mode: SCAN" if scanning else "Mode: MINE"
 	var mode_color: Color = Config.SCAN_BEAM_COLOR if scanning else Config.HUD_TEXT_COLOR
 	draw_string(font, Vector2(x, y), mode_text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, mode_color)

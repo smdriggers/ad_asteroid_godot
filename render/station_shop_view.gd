@@ -43,19 +43,36 @@ func _draw() -> void:
 	_centered(font, "Credits: %d" % shown_credits, Config.HUD_TEXT_COLOR, cx, y, 18)
 
 	_draw_grid(font)
-	_centered(font, "Arrows: select   Enter: buy   Tab: launch", Config.HUD_TEXT_COLOR, cx, Config.SHOP_PROMPT_Y, 14)
+	if PlayerInput.touch_ui():
+		_centered(font, "Tap a tile to select it, tap again to buy", Config.HUD_TEXT_COLOR, cx, Config.SHOP_PROMPT_Y, 14)
+		var r: Rect2 = launch_rect()
+		draw_rect(r, Config.SHOP_TILE_SELECTED_COLOR, false, Config.SHOP_TILE_SELECTED_WIDTH)
+		_centered(font, "LAUNCH", Config.SHOP_TILE_SELECTED_COLOR, r.get_center().x, r.get_center().y + 8.0, 22)
+	else:
+		_centered(font, "Arrows: select   Enter: buy   Tab: launch", Config.HUD_TEXT_COLOR, cx, Config.SHOP_PROMPT_Y, 14)
 
-func _draw_grid(font: Font) -> void:
+func tile_rect(i: int) -> Rect2:
 	var columns: int = Config.SHOP_GRID_COLUMNS
 	var tw: float = Config.SHOP_TILE_WIDTH
 	var th: float = Config.SHOP_TILE_HEIGHT
 	var gap: float = Config.SHOP_TILE_GAP
 	var left: float = (size.x - (columns * tw + (columns - 1) * gap)) / 2.0
+	return Rect2(left + (i % columns) * (tw + gap), Config.SHOP_GRID_TOP + (i / columns) * (th + gap), tw, th)
 
+func tile_at(pos: Vector2) -> int:
+	# Shop tile index under a screen position, or -1 (used for touch).
 	for i in range(Upgrades.SHOP_TILES.size()):
-		var tile: String = Upgrades.SHOP_TILES[i]
-		var rect := Rect2(left + (i % columns) * (tw + gap), Config.SHOP_GRID_TOP + (i / columns) * (th + gap), tw, th)
-		_draw_tile(font, tile, rect, i == main.shop_selection)
+		if tile_rect(i).has_point(pos):
+			return i
+	return -1
+
+func launch_rect() -> Rect2:
+	# Touch-only LAUNCH button, top-right of the station screen.
+	return Rect2(size.x - 200.0, 24.0, 176.0, 64.0)
+
+func _draw_grid(font: Font) -> void:
+	for i in range(Upgrades.SHOP_TILES.size()):
+		_draw_tile(font, Upgrades.SHOP_TILES[i], tile_rect(i), i == main.shop_selection)
 
 func _draw_tile(font: Font, tile: String, rect: Rect2, selected: bool) -> void:
 	var border: Color = Config.SHOP_TILE_SELECTED_COLOR if selected else Config.SHOP_TILE_BORDER_COLOR

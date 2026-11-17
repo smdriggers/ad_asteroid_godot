@@ -42,6 +42,9 @@ var bombs: Array = []   # Array of {"position", "velocity", "radius", "damage", 
 var showing_instructions: bool = true
 var game_over: bool = false
 var restart_key_was_down: bool = false
+var game_over_at_msec: int = 0  # so a panicked tap right at death doesn't skip the game-over screen
+const GAME_OVER_TAP_DELAY_MSEC: int = 800
+var touch_launch_requested: bool = false  # set by tapping LAUNCH on the station screen
 
 # ORE % and "system stripped" tracking (DESIGN.md §15.2)
 var nodes_at_spawn: int = 0
@@ -105,6 +108,7 @@ func _ready() -> void:
 	shop_view.main = self
 	hud_view.main = self
 	game_over_view.main = self
+	$Touch/TouchControlsView.main = self
 	$StationShop.visible = false
 	$GameOver.visible = false
 	puff_rng.randomize()
@@ -178,6 +182,10 @@ func _build_level(lvl: int) -> void:
 		s.position = s.position_at(world_time)
 
 func _input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch and event.pressed:
+		_handle_screen_tap(event.position)
+		return
+
 	# DESIGN.md §15.1: any key or mouse click dismisses the instructions.
 	if showing_instructions and (event is InputEventKey or event is InputEventMouseButton) and event.pressed:
 		showing_instructions = false
@@ -194,6 +202,29 @@ func _input(event: InputEvent) -> void:
 		elif event.keycode == KEY_F2:
 			unlimited_credits = not unlimited_credits
 			_debug_top_up()
+
+func _handle_screen_tap(pos: Vector2) -> void:
+	# Touch equivalents of the menu keys: tap dismisses the instructions,
+	# restarts from game over, and drives the station screen (tap a tile to
+	# select it, tap it again to buy; LAUNCH to leave). In-flight touches
+	# belong to render/touch_controls_view.gd.
+	if showing_instructions:
+		showing_instructions = false
+		instructions_view.visible = false
+	elif game_over:
+		if Time.get_ticks_msec() - game_over_at_msec >= GAME_OVER_TAP_DELAY_MSEC:
+			_restart_game()
+	elif docked:
+		if shop_view.launch_rect().has_point(pos):
+			touch_launch_requested = true
+			return
+		var i: int = shop_view.tile_at(pos)
+		if i == -1:
+			return
+		if i == shop_selection:
+			_buy_selected_tile()
+		else:
+			shop_selection = i
 
 func _debug_reveal_all() -> void:
 	# F1: marks every edge of every asteroid in the system as scanned.
@@ -219,6 +250,7 @@ func _physics_process(delta: float) -> void:
 
 	if ship.destroyed:
 		game_over = true
+		game_over_at_msec = Time.get_ticks_msec()
 		$GameOver.visible = true
 		return
 
@@ -248,6 +280,12 @@ func _physics_process(delta: float) -> void:
 	var turn_input: float = PlayerInput.turn_input()
 	var local_thrust: Vector2 = PlayerInput.local_thrust()
 	var precision: bool = PlayerInput.precision()
+	if PlayerInput.touch_stick != Vector2.ZERO:
+		# Touch joystick (point-and-thrust) — see PlayerInput.stick_controls().
+		var stick: Dictionary = PlayerInput.stick_controls(ship.heading, delta)
+		turn_input = clampf(turn_input + stick.turn, -1.0, 1.0)
+		local_thrust += stick.thrust
+		precision = precision or stick.precision
 
 	ship.apply_turn(delta, turn_input, precision)
 
@@ -286,17 +324,20 @@ func _physics_process(delta: float) -> void:
 
 	var firing: bool = PlayerInput.firing()
 
-	if player_mode == "scan":
+	if player_mode == "scan" or PlayerInput.touch_scan:
 		# Nothing fires in scan mode; in-flight bolts still resolve
-		# normally below, they just stop getting new company.
-		scan_beam = scanner.scan(ship.position, ship.heading, ship, asteroid_entries) if firing else {}
+		# normally below, they just stop getting new company. On touch,
+		# holding SCAN is a momentary scan mode.
+		var scanning: bool = firing or PlayerInput.touch_scan
+		scan_beam = scanner.scan(ship.position, ship.heading, ship, asteroid_entries) if scanning else {}
 	else:
 		# DESIGN.md §9: in mine mode, holding the trigger fires the laser
-		# and the bomb launcher together, each at its own rate.
+		# and the bomb launcher together, each at its own rate. On touch,
+		# BLAST and BOMB are separate buttons.
 		scan_beam = {}
-		var new_bolts: Array = bolt_laser.update(delta, firing, ship)
+		var new_bolts: Array = bolt_laser.update(delta, firing or PlayerInput.touch_blast, ship)
 		bolts.append_array(new_bolts)
-		var new_bombs: Array = bomb_launcher.update(delta, firing, ship)
+		var new_bombs: Array = bomb_launcher.update(delta, firing or PlayerInput.touch_bomb, ship)
 		bombs.append_array(new_bombs)
 
 	# Automatic scan pulses, in either mode, once the "scan_pulse" upgrade
@@ -451,7 +492,8 @@ func _dock(station: OrbitBody) -> void:
 
 func _handle_docked_input() -> void:
 	var tab_down: bool = PlayerInput.launch_key_down()
-	if tab_down and not tab_key_was_down:
+	if (tab_down and not tab_key_was_down) or touch_launch_requested:
+		touch_launch_requested = false
 		docked = false
 		dock_armed = false
 		$StationShop.visible = false

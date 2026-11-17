@@ -32,7 +32,7 @@ func _draw() -> void:
 		y += Config.HUD_LINE_HEIGHT
 
 	y += Config.HUD_LINE_HEIGHT
-	_centered(font, "Press Enter to start over", Config.HUD_TEXT_COLOR, cx, y, 18)
+	_centered(font, "Tap to start over" if PlayerInput.touch_ui() else "Press Enter to start over", Config.HUD_TEXT_COLOR, cx, y, 18)
 
 func _centered(font: Font, text: String, color: Color, cx: float, y: float, font_size: int) -> void:
 	var tw: float = font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x

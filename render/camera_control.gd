@@ -33,6 +33,11 @@ func _unhandled_input(event: InputEvent) -> void:
 			zoom_scale = clamp(zoom_scale / Config.ZOOM_SPEED, zoom_min, Config.ZOOM_MAX)
 			_apply()
 
+func zoom_by(factor: float) -> void:
+	# Pinch-to-zoom (render/touch_controls_view.gd): factor > 1 zooms in.
+	zoom_scale = clamp(zoom_scale * factor, zoom_min, Config.ZOOM_MAX)
+	_apply()
+
 func _apply() -> void:
 	zoom = Vector2(zoom_scale, zoom_scale)
 

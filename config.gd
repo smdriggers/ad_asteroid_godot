@@ -42,6 +42,7 @@ const THRUST_ZOOM_CAP: float = 1.0       # zoom past this no longer weakens thru
 const AUTO_ZOOM_VIEW_FRACTION: float = 0.8  # share of the half-screen the gap to the nearest surface may fill
 const AUTO_ZOOM_PADDING: float = 90.0       # world px added to the gap, so touching a body doesn't zoom to infinity
 const AUTO_ZOOM_MAX: float = 2.5            # closest auto-zoom (e.g. in station range)
+const AUTO_ZOOM_DIST_SLACK: float = 100.0    # px/sec on top of ship speed that the zoom distance may grow by (gradual zoom-out when the nearest rock is destroyed)
 const AUTO_ZOOM_RATE: float = 3.0           # 1/sec; how fast the camera eases toward the target (log space)
 const ZOOM_BIAS_MIN: float = 0.25           # wheel multiplier range on top of auto-zoom
 const ZOOM_BIAS_MAX: float = 4.0

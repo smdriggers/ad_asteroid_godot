@@ -76,6 +76,11 @@ var loose_ore: Array = []  # Array of {"view": Node2D, "offset": Vector2, "mater
 var credits: int = 0
 var credits_earned: int = 0
 
+# Auto-zoom's distance input, rate-limited so it only grows about as fast
+# as the ship could fly it — when the nearest body vanishes (asteroid
+# destroyed), the camera drifts out instead of jumping. -1 = reset.
+var zoom_dist: float = -1.0
+
 var docked: bool = false
 var docked_station: OrbitBody = null  # which station the ship is docked/launching from — DESIGN.md §12.1-12.2
 var dock_armed: bool = true   # false right after launch until re-armed (DESIGN.md §12.1)
@@ -290,7 +295,12 @@ func _physics_process(delta: float) -> void:
 	ship.apply_turn(delta, turn_input, precision)
 
 	var cam: CameraControl = $Ship/Camera2D as CameraControl
-	cam.step_auto(delta, _nearest_surface_distance())
+	var raw_dist: float = _nearest_surface_distance()
+	if zoom_dist < 0.0 or raw_dist <= zoom_dist:
+		zoom_dist = raw_dist
+	else:
+		zoom_dist = min(raw_dist, zoom_dist + (ship.velocity.length() + Config.AUTO_ZOOM_DIST_SLACK) * delta)
+	cam.step_auto(delta, zoom_dist)
 	var zoom_scale: float = cam.zoom_scale
 	var gravity_accel: Vector2 = Gravity.acceleration(ship.position, gravity_bodies)
 	var thrust_accel: Vector2 = ship.thrust_accel_vector(local_thrust, precision, zoom_scale)

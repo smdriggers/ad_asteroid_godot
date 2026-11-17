@@ -1,2 +1,22 @@
+# Godot 4 editor/import cache
 .godot/
+
+# Godot 3 leftovers
+.import/
+
+# Export output
 export/
+*.translation
+
+# Mono / C#
+.mono/
+data_*/
+mono_crash.*.json
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini

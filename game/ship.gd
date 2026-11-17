@@ -29,7 +29,7 @@ func thrust_accel_vector(local_thrust: Vector2, precision: bool, zoom_scale: flo
 	var accel_mag: float = Config.THRUST_ACCEL
 	if precision:
 		accel_mag *= Config.PRECISION_FACTOR
-	accel_mag *= pow(Config.ZOOM_DEFAULT / zoom_scale, Config.THRUST_ZOOM_EXPONENT)
+	accel_mag *= pow(Config.ZOOM_DEFAULT / min(zoom_scale, Config.THRUST_ZOOM_CAP), Config.THRUST_ZOOM_EXPONENT)
 	accel_mag *= Upgrades.value_at("engine_power", upgrade_tiers.engine_power)
 	var forward: Vector2 = Vector2(0, -1).rotated(heading)
 	var side: Vector2 = forward.rotated(PI / 2.0)

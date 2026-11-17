@@ -1,0 +1,11 @@
+res://render/orbit_body_view.gd
+res://render/camera_control.gd
+res://config.gd
+res://main.gd
+res://game/asteroid_graph.gd
+res://game/competitors.gd
+res://game/projectiles.gd
+res://game/system_gen.gd
+res://game/upgrades.gd
+res://render/hud_view.gd
+res://render/station_shop_view.gd

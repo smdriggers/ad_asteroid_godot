@@ -8,7 +8,7 @@ const LINES: Array[String] = [
 	"W / S       - thrust forward / back",
 	"A / D       - strafe left / right",
 	"Shift       - precision (half speed)",
-	"Mouse wheel - zoom",
+	"Mouse wheel - adjust auto-zoom",
 	"G           - switch between mine and scan modes",
 	"Hold LMB / Space, mine mode - fire laser at asteroids",
 	"Hold LMB / Space, scan mode - beam reveals the ore it touches",
@@ -22,7 +22,6 @@ const TOUCH_LINES: Array[String] = [
 	"BLAST       - fire laser at asteroids",
 	"BOMB        - drop a bomb (buy them at the station)",
 	"SCAN        - hold to reveal the ore the beam touches",
-	"Pinch       - zoom",
 	"Station     - tap a tile to select, tap again to buy",
 ]
 

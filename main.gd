@@ -8,7 +8,7 @@ extends Node2D
 #
 # Milestone 2 (DESIGN.md §3-4): one star, one planet, one station, all on
 # circular rails; ship gravity, thrust/turn/strafe, and impact/death
-# against the star and planet. No asteroids, docking, or camera zoom yet.
+# against the star and planet.
 
 @onready var ship: Ship = $Ship
 @onready var star: OrbitBody = $Star
@@ -132,8 +132,8 @@ func _build_level(lvl: int) -> void:
 
 	var cam: CameraControl = $Ship/Camera2D as CameraControl
 	cam.zoom_min = level_data.zoom_min
-	cam.zoom_scale = clamp(cam.zoom_scale, cam.zoom_min, Config.ZOOM_MAX)
-	cam._apply()
+	cam.auto_zoom = clamp(cam.auto_zoom, cam.zoom_min, Config.AUTO_ZOOM_MAX)
+	cam._recompute()
 
 	$Star/StarView.outline_color = Config.STAR_COLOR
 	$Star/StarView.camera = cam
@@ -289,7 +289,9 @@ func _physics_process(delta: float) -> void:
 
 	ship.apply_turn(delta, turn_input, precision)
 
-	var zoom_scale: float = ($Ship/Camera2D as CameraControl).zoom_scale
+	var cam: CameraControl = $Ship/Camera2D as CameraControl
+	cam.step_auto(delta, _nearest_surface_distance())
+	var zoom_scale: float = cam.zoom_scale
 	var gravity_accel: Vector2 = Gravity.acceleration(ship.position, gravity_bodies)
 	var thrust_accel: Vector2 = ship.thrust_accel_vector(local_thrust, precision, zoom_scale)
 	var prev_pos: Vector2 = ship.position
@@ -395,6 +397,19 @@ func _physics_process(delta: float) -> void:
 	_check_docking()
 	_step_competitors(delta, asteroid_entries)
 	_step_ore_count(delta)
+
+func _nearest_surface_distance() -> float:
+	# Auto-zoom input: gap from the ship to the closest body's surface —
+	# star, planets, stations, and asteroids (by their bounding radius).
+	var best: float = INF
+	for b in [star] + planets + stations:
+		best = min(best, ship.position.distance_to(b.position) - b.body_radius)
+	for entry in asteroid_views:
+		var graph: AsteroidGraph = entry.view.graph
+		if graph.nodes.is_empty():
+			continue
+		best = min(best, ship.position.distance_to(entry.view.position) - graph.bounding_radius)
+	return max(best, 0.0)
 
 func _step_ore_count(delta: float) -> void:
 	# DESIGN.md §15.2: recounted every ORE_HUD_UPDATE_INTERVAL seconds

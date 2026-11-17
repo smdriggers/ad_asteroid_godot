@@ -32,6 +32,19 @@ const ZOOM_MAX: float = 3.0          # ported from pygame config.py
 const ZOOM_SPEED: float = 1.1        # multiplier/divisor applied per wheel notch — ported from pygame config.py
 const THRUST_ZOOM_EXPONENT: float = 1.0  # DESIGN.md §4.2: thrust *= (ZOOM_DEFAULT/zoom)^this
 
+# Auto-zoom (replaces pinch zoom): the camera frames the ship and the
+# surface of the nearest body (star, planet, station, asteroid). Target
+# zoom = AUTO_ZOOM_VIEW_FRACTION * (half the viewport's shorter side) /
+# (distance to that surface + AUTO_ZOOM_PADDING), clamped to
+# [level zoom_min, AUTO_ZOOM_MAX]. The mouse wheel still nudges a
+# multiplier on top of it (desktop).
+const AUTO_ZOOM_VIEW_FRACTION: float = 0.8  # share of the half-screen the gap to the nearest surface may fill
+const AUTO_ZOOM_PADDING: float = 150.0      # world px added to the gap, so touching a body doesn't zoom to infinity
+const AUTO_ZOOM_MAX: float = 1.0            # closest auto-zoom; kept low since thrust shrinks as zoom grows (§4.2)
+const AUTO_ZOOM_RATE: float = 2.0           # 1/sec; how fast the camera eases toward the target (log space)
+const ZOOM_BIAS_MIN: float = 0.25           # wheel multiplier range on top of auto-zoom
+const ZOOM_BIAS_MAX: float = 4.0
+
 # --- Solar system bodies (DESIGN.md §3.1): same scale in every level; a
 # level's STAR_MASS/STAR_GRAVITY_RADIUS/planet layout is in LEVELS below. ---
 const STAR_RADIUS: float = 50.0      # ported from pygame config.py

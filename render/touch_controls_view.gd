@@ -1,7 +1,7 @@
 extends Control
 # render/touch_controls_view.gd — on-screen controls for phones/tablets:
 # a floating joystick on the left half, three arcade buttons on the right
-# (BLAST, BOMB, SCAN), and two-finger pinch to zoom. Writes its state into
+# (BLAST, BOMB, SCAN). Zoom is automatic (render/camera_control.gd). Writes its state into
 # PlayerInput's static touch_* vars every event; main.gd reads them there.
 # Only shown in flight on a touch device; desktop play is untouched.
 
@@ -24,14 +24,13 @@ var stick_finger: int = -1
 var stick_origin: Vector2 = Vector2.ZERO
 var stick_pos: Vector2 = Vector2.ZERO
 var button_fingers: Dictionary = {}  # finger index -> button id
-var free_fingers: Dictionary = {}    # finger index -> position (pinch-zoom candidates)
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 func _process(_delta: float) -> void:
 	var want_visible: bool = PlayerInput.touch_ui() and _in_flight()
-	if not want_visible and (stick_finger != -1 or not button_fingers.is_empty() or not free_fingers.is_empty()):
+	if not want_visible and (stick_finger != -1 or not button_fingers.is_empty()):
 		_release_all()
 	visible = want_visible
 	if visible:
@@ -68,14 +67,11 @@ func _press(finger: int, pos: Vector2) -> void:
 			clampf(pos.x, STICK_RADIUS, size.x * 0.5),
 			clampf(pos.y, STICK_RADIUS, size.y - STICK_RADIUS))
 		stick_pos = pos
-	else:
-		free_fingers[finger] = pos
 
 func _release(finger: int) -> void:
 	if finger == stick_finger:
 		stick_finger = -1
 	button_fingers.erase(finger)
-	free_fingers.erase(finger)
 
 func _drag(finger: int, pos: Vector2) -> void:
 	if finger == stick_finger:
@@ -85,23 +81,10 @@ func _drag(finger: int, pos: Vector2) -> void:
 		var hit: String = _button_at(pos)
 		if hit != "":
 			button_fingers[finger] = hit
-	elif free_fingers.has(finger):
-		if free_fingers.size() == 2:
-			var other: Vector2 = Vector2.ZERO
-			for f in free_fingers:
-				if f != finger:
-					other = free_fingers[f]
-			var before: float = free_fingers[finger].distance_to(other)
-			var after: float = pos.distance_to(other)
-			if before > 1.0 and after > 1.0:
-				var cam: CameraControl = main.get_node("Ship/Camera2D") as CameraControl
-				cam.zoom_by(after / before)
-		free_fingers[finger] = pos
 
 func _release_all() -> void:
 	stick_finger = -1
 	button_fingers.clear()
-	free_fingers.clear()
 	_publish()
 
 func _publish() -> void:

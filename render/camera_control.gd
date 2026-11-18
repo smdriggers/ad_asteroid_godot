@@ -52,7 +52,7 @@ func intro_active() -> bool:
 func start_intro(star_offset: Vector2) -> void:
 	# star_offset: star position minus ship position.
 	intro_from_offset = star_offset
-	intro_to_zoom = zoom_scale
+	intro_to_zoom = clampf(maxf(zoom_scale, Config.INTRO_END_ZOOM), zoom_min, Config.ZOOM_MAX)
 	intro_time = 0.0
 	_step_intro_view()
 

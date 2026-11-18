@@ -1,9 +1,9 @@
 extends RefCounted
 class_name Materials
 # game/materials.gd — the ten-material table (DESIGN.md §8): identity,
-# value and HP for generation to use, plus color for rendering once
-# scanning exists. Hardness-penalty damage math (effective_damage)
-# arrives with mining, a later milestone.
+# value, HP and color. Hardness equals the rung (id); the hardness
+# penalty itself is Projectiles.effective_damage(). All numbers are
+# starting points to tune in playtesting.
 
 const IRON: int = 1
 const ALUMINUM: int = 2

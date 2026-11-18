@@ -254,7 +254,7 @@ const LASER_COUNT: int = 1                # bolts per volley; the "laser count" 
 const LASER_SPACING: float = 10.0         # px between parallel bolts in a volley
 const FIRE_RATE: float = 3.0              # volleys/sec
 const BOLT_SPEED: float = 500.0           # px/sec, relative to the ship — ported from pygame config.py
-const BOLT_DAMAGE: float = 2.0
+const BOLT_DAMAGE: float = 1.0            # per bolt, before the hardness penalty — implementation.md §7.3 (iron = 2 bolts/cell at tier 1)
 const BOLT_LIFETIME: float = 1.2          # seconds; the "mining_range" upgrade raises this later
 const BOLT_HIT_RADIUS: float = 6.0        # px; capsule radius around each outline edge
 const BOLT_TRAIL_LENGTH: float = 10.0     # px; purely visual

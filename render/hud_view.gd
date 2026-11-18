@@ -39,6 +39,10 @@ func _draw() -> void:
 	draw_string(font, Vector2(x, y), "ORE %d%%" % ore_pct, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Config.HUD_TEXT_COLOR)
 	y += line
 
+	if Config.DEBUG_SHOW_SPEED:
+		# Debug readout, not for release: the ship's speed in world px/sec.
+		_centered(font, "SPEED %.1f" % main.ship.velocity.length(), Config.HUD_TEXT_COLOR, size.x / 2.0, Config.HUD_MARGIN, font_size)
+
 	if main.stripped_time != null and main.world_time - main.stripped_time < Config.STRIPPED_MESSAGE_TIME:
 		_centered(font, "THE SYSTEM IS STRIPPED", Config.STRIPPED_MESSAGE_COLOR, size.x / 2.0, size.y / 3.0, 22)
 

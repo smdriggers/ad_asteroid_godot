@@ -375,4 +375,5 @@ const COMP_COLOR: Color = Color(1.0, 0.4, 0.0)  # amber; all competitors share i
 
 # --- Debug keys (DESIGN.md §17) ---
 const DEBUG_KEYS_ENABLED: bool = true  # F1 reveals every asteroid edge; F2 toggles unlimited credits — ported from pygame config.py
-const DEBUG_CREDITS: int = 1_000_000   # what unlimited credits keeps you topped up to — ported from pygame config.py
+const DEBUG_SHOW_SPEED: bool = true    # debug only, not for release: ship speed (world px/sec) at the top centre of the HUD
+const DEBUG_CREDITS: int = 1_000_000  # what unlimited credits keeps you topped up to — ported from pygame config.py

@@ -10,6 +10,7 @@ var outline_color: Color = Color.WHITE
 var camera: CameraControl = null
 var min_screen_size: float = 0.0  # 0 = no floor
 var max_screen_size: float = 0.0  # 0 = no ceiling; set per-instance (planet/station) from main.gd
+var glow_strength: float = 1.0    # halo width multiplier (render/glow.gd); the star uses more
 
 func _process(_delta: float) -> void:
 	queue_redraw()
@@ -25,4 +26,4 @@ func _draw() -> void:
 			# Not real size past this point — stops the planet/station from
 			# ballooning as the camera zooms in close.
 			drawn_r = min(drawn_r, max_screen_size / camera.zoom_scale)
-	draw_arc(Vector2.ZERO, drawn_r, 0.0, TAU, 48, outline_color, 2.0)
+	Glow.arc(self, Vector2.ZERO, drawn_r, outline_color, 2.0, 48, glow_strength)

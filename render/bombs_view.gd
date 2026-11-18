@@ -9,4 +9,4 @@ func _process(_delta: float) -> void:
 func _draw() -> void:
 	var bombs: Array = get_parent().bombs
 	for bomb in bombs:
-		draw_circle(bomb.position, Config.BOMB_DRAW_RADIUS, Config.BOMB_COLOR)
+		Glow.dot(self, bomb.position, Config.BOMB_DRAW_RADIUS, Config.BOMB_COLOR)

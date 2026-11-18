@@ -16,4 +16,4 @@ func _draw() -> void:
 	var back_left := Vector2(-r * 0.6, r * 0.8).rotated(heading)
 	var back_right := Vector2(r * 0.6, r * 0.8).rotated(heading)
 	var points := PackedVector2Array([nose, back_left, back_right, nose])
-	draw_polyline(points, Config.SHIP_COLOR, 2.0)
+	Glow.polyline(self, points, Config.SHIP_COLOR, 2.0)

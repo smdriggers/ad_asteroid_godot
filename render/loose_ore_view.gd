@@ -23,7 +23,7 @@ func _draw() -> void:
 		var pos: Vector2 = main.loose_ore_position(item)
 		if item.pulled:
 			_draw_beam(pos, ship_pos, zoom_scale)
-		draw_circle(pos, 3.0, Materials.color(item.material))
+		Glow.dot(self, pos, 3.0, Materials.color(item.material))
 
 func _draw_beam(ore_pos: Vector2, ship_pos: Vector2, zoom_scale: float) -> void:
 	var to_ship: Vector2 = ship_pos - ore_pos
@@ -51,4 +51,4 @@ func _draw_ring(center: Vector2, major_dir: Vector2, minor_dir: Vector2, half_w:
 	for i in range(RING_SEGMENTS + 1):
 		var a: float = TAU * float(i) / float(RING_SEGMENTS)
 		points.append(center + major_dir * (cos(a) * half_w) + minor_dir * (sin(a) * half_h))
-	draw_polyline(points, color, 1.2 * px, true)
+	Glow.polyline(self, points, color, 1.2 * px, 0.5)

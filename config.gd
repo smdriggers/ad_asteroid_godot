@@ -302,6 +302,11 @@ const SCAN_PULSE_FLASH_TIME: float = 0.15 # seconds an automatic pulse's beam st
 const SCAN_BEAM_COLOR: Color = Color(0.4, 1.0, 1.0)
 
 # --- Look ---
+# Neon glow (render/glow.gd): halo strokes drawn under every outline.
+const GLOW_ENABLED: bool = true
+const GLOW_PASSES: Array = [[10.0, 0.06], [6.0, 0.12], [3.0, 0.22]]  # [extra width in screen px, alpha], widest first
+const GLOW_INTENSITY: float = 1.0     # multiplies every halo's alpha
+const GLOW_STAR_STRENGTH: float = 2.5 # the star's halo is this much wider
 const BG_COLOR: Color = Color(0, 0, 0)  # black background (also set as the project's default clear color)
 
 # Thrust puffs (DESIGN.md §16.3); ported from pygame config.py. Purely

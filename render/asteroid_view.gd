@@ -22,22 +22,27 @@ func _draw() -> void:
 	# DESIGN.md §11: the outline is always drawn; a scanned edge shows its
 	# owner's material color instead of grey. A deep scan can also reveal
 	# interior edges, which then get drawn too, in their owner's color.
+	# All edges go out in one batched, glowing draw.
+	var points := PackedVector2Array()
+	var colors := PackedColorArray()
 	for key in graph.exterior_edges.keys():
-		_draw_edge(key)
+		_add_edge(key, points, colors)
 	for key in graph.revealed.keys():
 		if not graph.exterior_edges.has(key):
-			_draw_edge(key)
+			_add_edge(key, points, colors)
+	if not points.is_empty():
+		Glow.multiline_colors(self, points, colors, 2.0)
 
-func _draw_edge(key: String) -> void:
+func _add_edge(key: String, points: PackedVector2Array, colors: PackedColorArray) -> void:
 	var n: Array = AsteroidGraph.edge_nodes(key)
-	var a: Vector2 = AsteroidGraph.node_offset(n[0], Config.HEX_NODE_RADIUS)
-	var b: Vector2 = AsteroidGraph.node_offset(n[1], Config.HEX_NODE_RADIUS)
+	points.append(AsteroidGraph.node_offset(n[0], Config.HEX_NODE_RADIUS))
+	points.append(AsteroidGraph.node_offset(n[1], Config.HEX_NODE_RADIUS))
 	var color: Color = Config.UNSCANNED_EDGE_COLOR
 	if graph.revealed.has(key):
 		var owner: Vector2i = graph.edge_owner.get(key, n[0])
 		var mat: int = graph.node_material.get(owner, Materials.IRON)
 		color = _damage_color(owner, mat)
-	draw_line(a, b, color, 2.0)
+	colors.append(color)
 
 func _damage_color(owner: Vector2i, mat: int) -> Color:
 	# Damage feedback — DESIGN.md §16.2: an edge whose owner has lost HP

@@ -12,4 +12,4 @@ func _draw() -> void:
 		var dir: Vector2 = bolt.velocity
 		if dir.length() > 0.0:
 			dir = dir.normalized()
-		draw_line(bolt.position, bolt.position - dir * Config.BOLT_TRAIL_LENGTH, Config.BOLT_COLOR, 2.0)
+		Glow.line(self, bolt.position, bolt.position - dir * Config.BOLT_TRAIL_LENGTH, Config.BOLT_COLOR, 2.0)

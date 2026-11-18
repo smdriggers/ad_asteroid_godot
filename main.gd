@@ -174,6 +174,7 @@ func _build_level(lvl: int) -> void:
 	cam.set_zoom_scale(cam.zoom_scale)  # re-clamp to the new level's range
 
 	$Star/StarView.outline_color = Config.STAR_COLOR
+	$Star/StarView.glow_strength = Config.GLOW_STAR_STRENGTH
 	$Star/StarView.camera = cam
 	$Star/StarView.min_screen_size = Config.STAR_MIN_SCREEN_SIZE
 

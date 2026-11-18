@@ -17,6 +17,6 @@ func _draw_beam(main: Node2D, beam: Dictionary) -> void:
 	if beam.is_empty():
 		return
 	var ship_pos: Vector2 = main.ship.position
-	draw_line(ship_pos, beam.left_end, Config.SCAN_BEAM_COLOR, 1.5)
+	Glow.line(self, ship_pos, beam.left_end, Config.SCAN_BEAM_COLOR, 1.5)
 	if beam.right_end != beam.left_end:
-		draw_line(ship_pos, beam.right_end, Config.SCAN_BEAM_COLOR, 1.5)
+		Glow.line(self, ship_pos, beam.right_end, Config.SCAN_BEAM_COLOR, 1.5)

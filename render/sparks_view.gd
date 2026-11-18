@@ -12,4 +12,4 @@ func _draw() -> void:
 		var col: Color = s.color
 		if s.dim:
 			col = col.darkened(Config.SPARK_DIM_FACTOR)
-		draw_circle(s.position, 2.5, col)
+		Glow.dot(self, s.position, 2.5, col)

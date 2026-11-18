@@ -22,10 +22,13 @@ func _draw() -> void:
 	for item in main.loose_ore:
 		var pos: Vector2 = main.loose_ore_position(item)
 		if item.pulled:
-			_draw_beam(pos, ship_pos, zoom_scale)
+			if item.puller == null:
+				_draw_beam(pos, ship_pos, zoom_scale, Config.TRACTOR_BEAM_COLOR)
+			else:
+				_draw_beam(pos, item.puller.position, zoom_scale, Config.COMP_COLOR)  # a competitor's beam
 		Glow.dot(self, pos, 3.0, Materials.color(item.material))
 
-func _draw_beam(ore_pos: Vector2, ship_pos: Vector2, zoom_scale: float) -> void:
+func _draw_beam(ore_pos: Vector2, ship_pos: Vector2, zoom_scale: float, beam_color: Color) -> void:
 	var to_ship: Vector2 = ship_pos - ore_pos
 	var length: float = to_ship.length()
 	if length < 1.0:
@@ -43,7 +46,7 @@ func _draw_beam(ore_pos: Vector2, ship_pos: Vector2, zoom_scale: float) -> void:
 		var half_h: float = half_w * Config.TRACTOR_RING_FLATNESS
 		# Fade in just off the ore and out just before the ship.
 		var alpha: float = 0.8 * minf(1.0, minf(s, 1.0 - s) * 6.0)
-		_draw_ring(ore_pos + along * d, across, along, half_w, half_h, Color(Config.TRACTOR_BEAM_COLOR, alpha), px)
+		_draw_ring(ore_pos + along * d, across, along, half_w, half_h, Color(beam_color, alpha), px)
 		d += spacing
 
 func _draw_ring(center: Vector2, major_dir: Vector2, minor_dir: Vector2, half_w: float, half_h: float, color: Color, px: float) -> void:

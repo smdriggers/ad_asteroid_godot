@@ -178,6 +178,7 @@ func _build_level(lvl: int) -> void:
 	# $Star/$Star View are the only static bodies, since every level has
 	# exactly one star.
 	level = lvl
+	Materials.hardness_bonus = (lvl - 1) * Config.HARDNESS_PER_LEVEL
 	var level_data: Dictionary = Config.LEVELS[lvl]
 	comp_max = level_data.comp_max
 
@@ -495,6 +496,7 @@ func _step_competitors(delta: float, asteroid_entries: Array) -> void:
 	for comp in competitors:
 		var crashed: bool = CompAI.update(comp, ctx, delta)
 		if crashed:
+			_release_loose_ore(comp)
 			CompAI.respawn(comp, ctx)
 		elif comp.state == Competitor.MINING and comp.cargo_used() >= comp.cargo_capacity():
 			# A hit that filled the cargo mid-mine still leaves a valid
@@ -508,6 +510,7 @@ func _build_comp_ctx(asteroid_entries: Array) -> Dictionary:
 		"asteroid_views": asteroid_views, "asteroid_entries": asteroid_entries,
 		"gravity_bodies": gravity_bodies, "world_time": world_time,
 		"last_mined": last_mined, "scanner": scanner,
+		"loose_ore": loose_ore, "drop_ore": drop_loose_ore,
 	}
 
 func _check_docking() -> void:
@@ -667,7 +670,23 @@ func _collect_ore(ore: Dictionary) -> void:
 	# asteroid's orbit at a fixed offset, until tractored in (tractor_start / _step_tractor).
 	cargo.record_mined(ore.material)
 	last_mined[ore.view] = world_time  # DESIGN.md §14.2: Scavengers watch for this
-	loose_ore.append({"view": ore.view, "offset": ore.offset, "material": ore.material, "pulled": false, "pos": Vector2.ZERO})
+	drop_loose_ore(ore)
+
+func drop_loose_ore(ore: Dictionary) -> void:
+	# Player and competitor mining both end here: the ore floats loose for
+	# anyone to tractor in. puller = null while loose or pulled by the
+	# player, else the Competitor pulling it.
+	loose_ore.append({"view": ore.view, "offset": ore.offset, "material": ore.material,
+			"pulled": false, "pos": Vector2.ZERO, "puller": null})
+
+func _release_loose_ore(puller) -> void:
+	# A competitor crashed: whatever it was reeling in floats loose again,
+	# riding the rock it came from at its current spot.
+	for item in loose_ore:
+		if item.pulled and item.puller == puller:
+			item.offset = item.pos - item.view.position
+			item.pulled = false
+			item.puller = null
 
 static func loose_ore_position(item: Dictionary) -> Vector2:
 	return item.pos if item.pulled else item.view.position + item.offset
@@ -702,7 +721,8 @@ func _tractor_grab_next() -> void:
 	var best_d: float = mining_range()
 	for item in loose_ore:
 		if item.pulled:
-			reserved += 1
+			if item.puller == null:
+				reserved += 1
 			continue
 		var d: float = ship.position.distance_to(loose_ore_position(item))
 		if d <= best_d:
@@ -725,15 +745,24 @@ func _step_tractor(delta: float) -> void:
 			tractor_grab_timer += Config.TRACTOR_GRAB_INTERVAL
 			_tractor_grab_next()
 
-	var reel: float = (Config.TRACTOR_SPEED + ship.velocity.length()) * delta
+	# Reel every grabbed piece toward whoever grabbed it (player or a
+	# competitor), at the beam's speed plus theirs so it always catches up.
 	var j: int = loose_ore.size() - 1
 	while j >= 0:
 		var item: Dictionary = loose_ore[j]
 		if item.pulled:
-			item.pos = item.pos.move_toward(ship.position, reel)
-			if item.pos.distance_to(ship.position) <= Config.SHIP_RADIUS:
-				cargo.add(item.material)
-				loose_ore.remove_at(j)
+			var puller: Ship = ship if item.puller == null else item.puller
+			var reel: float = (Config.TRACTOR_SPEED + puller.velocity.length()) * delta
+			item.pos = item.pos.move_toward(puller.position, reel)
+			if item.pos.distance_to(puller.position) <= Config.SHIP_RADIUS:
+				var landed: bool = cargo.add(item.material) if item.puller == null else item.puller.add_to_cargo(item.material)
+				if landed:
+					loose_ore.remove_at(j)
+				else:
+					# No room after all: drop it where it is.
+					item.offset = item.pos - item.view.position
+					item.pulled = false
+					item.puller = null
 		j -= 1
 
 func place_ship_in_launch_orbit() -> void:

@@ -255,6 +255,7 @@ const ORE_BUDGET: Dictionary = {
 # --- Mining (DESIGN.md §8-9) ---
 const LASER_TIER: int = 1                 # starting tier; the "laser tier" upgrade raises this later
 const HARDNESS_PENALTY_BASE: float = 2.0  # damage halves per rung of hardness above the laser tier — §8.1
+const HARDNESS_PER_LEVEL: int = 1         # every material is this many rungs harder per level past 1 (so ~1 laser tier per level)
 const LASER_COUNT: int = 1                # bolts per volley; the "laser count" upgrade raises this later
 const LASER_SPACING: float = 10.0         # px between parallel bolts in a volley
 const FIRE_RATE: float = 3.0              # volleys/sec
@@ -341,8 +342,8 @@ const COMP_SPAWN_INTERVAL_MIN: float = 20.0    # ...down to this floor
 const COMP_MAX_BURN_DV: float = 4.0        # max velocity change per tick
 const COMP_ARRIVAL_GAIN: float = 0.8       # closing speed = gain * sqrt(2 * max accel * distance)
 const COMP_MINE_RATE: float = 4.0          # laser hits per second, tier 0
-const COMP_MINE_RANGE: float = 30.0        # world units from the competitor to the edge midpoint it mines
-const COMP_MINE_STANDOFF: float = 18.0     # world units they try to hover from the nearest outline edge's midpoint
+const COMP_MINE_RANGE: float = 120.0       # laser reach: world units from the competitor to an edge midpoint it can cut. In reach, they hold where they are and fire
+const COMP_MINE_STANDOFF: float = 18.0     # the ideal spot: world units from the nearest edge midpoint they move in to, only when nothing is in reach
 const COMP_LASER_TIER: int = 1             # tier 0 laser tier for effective_damage()
 const COMP_MAX_HARDNESS_GAP: int = 2       # skip edges whose owner is more than this many rungs harder than their laser
 const COMP_CARGO_CAP: int = 5              # ore units per cargo trip, tier 0
@@ -355,7 +356,11 @@ const COMP_AVOID_MARGIN: float = 1.5       # radii kept clear of the star/planet
 const COMP_DETOUR_STEP: float = 45.0       # degrees round the circle each detour waypoint sits ahead
 const COMP_ROCK_AVOID_RANGE: float = 400.0     # rocks closer than this are steered round too...
 const COMP_ROCK_AVOID_LOOKAHEAD: float = 1.0   # ...plus this many seconds of travel
-const COMP_HEADING_MIN_DV: float = 0.4     # burns smaller than this are strafes; they don't turn the ship
+const COMP_EVADE_HORIZON: float = 2.0      # seconds ahead they check whether a nearby rock is on a collision course
+const COMP_EVADE_BUFFER: float = 20.0      # world units of clearance (beyond rock + ship radius) that counts as "too close"
+const COMP_TRACTOR_RANGE: float = 180.0    # world units; their tractor beam's reach for loose ore (more than COMP_MINE_RANGE, so they reach their own drops)
+const COMP_TRACTOR_INTERVAL: float = 0.25  # seconds between grabs
+const COMP_HEADING_MIN_DV: float = 0.4    # burns smaller than this are strafes; they don't turn the ship
 const COMP_UPGRADES: Array[String] = ["laser_tier", "fire_rate", "cargo_capacity", "engine_power"]
 const COMP_COLOR: Color = Color(1.0, 0.4, 0.0)  # amber; all competitors share it
 

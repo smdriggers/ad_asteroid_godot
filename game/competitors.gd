@@ -9,9 +9,14 @@ class_name CompAI
 #    "asteroid_entries": Array of {"view","graph"} (view/graph pairs only),
 #    "gravity_bodies": Array[OrbitBody], "world_time": float,
 #    "last_mined": Dictionary (Node2D view -> float world_time),
-#    "scanner": Scanner}
+#    "scanner": Scanner,
+#    "loose_ore": Array (main.gd's loose_ore list, shared with the player),
+#    "drop_ore": Callable(ore) — puts mined ore into loose_ore}
 #
 # Cycle: outbound -> mining -> returning -> (sell) -> outbound ...
+# Mined ore floats loose like the player's; competitors tractor in any
+# unclaimed loose ore in reach (theirs or the player's), and Scavengers fly
+# to wherever the most of it is.
 
 static func weighted_archetype_pick() -> String:
 	# rng.choices(ARCHETYPES, weights=COMP_ARCHETYPE_WEIGHTS_S1)[0] — DESIGN.md §14.1.
@@ -55,7 +60,11 @@ static func pick_new_target(comp: Competitor, ctx: Dictionary) -> void:
 	for view in comp.too_hard.keys():
 		if comp.laser_tier() <= comp.too_hard[view]:
 			skip.append(view)
-	comp.target = choose_target(comp.archetype, comp.position, ctx.asteroid_views, ctx.last_mined, skip)
+	comp.target = null
+	if comp.archetype == Competitor.SCAVENGER and comp.cargo_used() < comp.cargo_capacity():
+		comp.target = loose_ore_target(comp.position, ctx.asteroid_views, loose_ore_counts(ctx.loose_ore))
+	if comp.target == null:
+		comp.target = choose_target(comp.archetype, comp.position, ctx.asteroid_views, ctx.last_mined, skip)
 	comp.mine_timer = 0.0
 	if comp.target != null:
 		comp.state = Competitor.OUTBOUND
@@ -78,6 +87,24 @@ static func scanned_value(graph: AsteroidGraph) -> int:
 		if graph.nodes.has(owner):
 			total += Materials.value(graph.node_material.get(owner, Materials.IRON))
 	return total
+
+static func loose_ore_target(pos: Vector2, asteroid_views: Array, counts: Dictionary):
+	# Scavengers steal: the asteroid carrying the most unclaimed loose ore
+	# (anyone's, the player's included), nearest first on ties, or null.
+	# The rock may already be mined out; the ore still rides its orbit.
+	var best = null
+	var best_n: int = 0
+	var best_d: float = INF
+	for entry in asteroid_views:
+		var n: int = counts.get(entry.view, 0)
+		if n <= 0:
+			continue
+		var d: float = entry.view.position.distance_to(pos)
+		if n > best_n or (n == best_n and d < best_d):
+			best = entry
+			best_n = n
+			best_d = d
+	return best
 
 static func choose_target(archetype: String, pos: Vector2, asteroid_views: Array, last_mined: Dictionary, skip: Array):
 	# The asteroid entry this archetype heads for next, or null if every
@@ -159,30 +186,65 @@ static func avoid_bodies(pos: Vector2, goal_pos: Vector2, frame: OrbitBody, bodi
 	# If the straight line to the goal passes within `margin` x a body's
 	# radius of its center, go round it instead. bodies: Array of
 	# {"pos": Vector2, "radius": float, "frame": OrbitBody}. Returns
-	# {"goal_pos": Vector2, "frame": OrbitBody}.
+	# {"goal_pos": Vector2, "frame": OrbitBody}. When several bodies are in
+	# the way, the one met first along the path is the one gone round.
 	var waypoint_scale: float = 1.0 / cos(deg_to_rad(Config.COMP_DETOUR_STEP) / 2.0)
+
+	# Already too close to something: get out, from the nearest one first.
+	var inside = null
+	var inside_d: float = INF
 	for body in bodies:
-		var out: Vector2 = pos - body.pos
-		var safe: float = body.radius * margin
-		if out.length() > 0.0 and out.length() < safe:
-			return {"goal_pos": body.pos + out.normalized() * safe * waypoint_scale, "frame": body.frame}
+		var d: float = pos.distance_to(body.pos)
+		if d > 0.0 and d < body.radius * margin and d - body.radius < inside_d:
+			inside = body
+			inside_d = d - body.radius
+	if inside != null:
+		var out_dir: Vector2 = (pos - inside.pos).normalized()
+		return {"goal_pos": inside.pos + out_dir * inside.radius * margin * waypoint_scale, "frame": inside.frame}
 
 	var path: Vector2 = goal_pos - pos
 	var length_sq: float = path.length_squared()
+	var blocker = null
+	var blocker_t: float = INF
 	for body in bodies:
 		var safe: float = body.radius * margin
 		var t: float = 0.0
 		if length_sq != 0.0:
 			t = clamp((body.pos - pos).dot(path) / length_sq, 0.0, 1.0)
-		if (pos + path * t - body.pos).length() >= safe:
-			continue
-		var out: Vector2 = pos - body.pos
-		if out.length() == 0.0:
-			out = Vector2(1, 0)
-		var turn: float = 1.0 if out.cross(goal_pos - body.pos) >= 0.0 else -1.0
-		var step: Vector2 = out.normalized().rotated(turn * deg_to_rad(Config.COMP_DETOUR_STEP))
-		return {"goal_pos": body.pos + step * safe * waypoint_scale, "frame": body.frame}
-	return {"goal_pos": goal_pos, "frame": frame}
+		if (pos + path * t - body.pos).length() < safe and t < blocker_t:
+			blocker = body
+			blocker_t = t
+	if blocker == null:
+		return {"goal_pos": goal_pos, "frame": frame}
+	var out: Vector2 = pos - blocker.pos
+	if out.length() == 0.0:
+		out = Vector2(1, 0)
+	var turn: float = 1.0 if out.cross(goal_pos - blocker.pos) >= 0.0 else -1.0
+	var step: Vector2 = out.normalized().rotated(turn * deg_to_rad(Config.COMP_DETOUR_STEP))
+	return {"goal_pos": blocker.pos + step * blocker.radius * margin * waypoint_scale, "frame": blocker.frame}
+
+static func incoming_rock(pos: Vector2, vel: Vector2, rocks: Array, world_time: float):
+	# The rock that will pass too close soonest on current relative motion,
+	# or null. Rocks on other orbits drift past each other, so a ship
+	# holding still relative to its own target can still be run down; the
+	# path-based avoid_bodies() can't see that. rocks: Array of asteroid
+	# entries {"view","orbit"}. Returns {"entry","miss": Vector2 (rock ->
+	# ship at closest approach)}.
+	var best = null
+	var best_t: float = INF
+	for entry in rocks:
+		var r: Vector2 = pos - entry.view.position
+		var v: Vector2 = vel - entry.orbit.velocity_at(world_time)
+		var t: float = 0.0
+		var v2: float = v.length_squared()
+		if v2 > 0.0001:
+			t = clampf(-r.dot(v) / v2, 0.0, Config.COMP_EVADE_HORIZON)
+		var miss: Vector2 = r + v * t
+		var clear: float = entry.view.graph.bounding_radius + Config.SHIP_RADIUS + Config.COMP_EVADE_BUFFER
+		if miss.length() < clear and t < best_t:
+			best = {"entry": entry, "miss": miss}
+			best_t = t
+	return best
 
 static func turn_toward(angle: float, target_angle: float, max_turn: float) -> float:
 	# Rotates `angle` toward `target_angle` by at most `max_turn` radians,
@@ -255,16 +317,33 @@ static func _goal(comp: Competitor, ctx: Dictionary, pos: Vector2) -> Dictionary
 
 	var asteroid = comp.target
 	var graph: AsteroidGraph = asteroid.view.graph
+	if comp.hold_rock != asteroid.view:
+		comp.hold_offset = null  # a different rock: any held spot is stale
 	var reach: float = graph.bounding_radius + Config.COMP_MINE_RANGE
 	if pos.distance_to(asteroid.view.position) > reach:
 		# Far away: aim for just outside the rock's bounds, on our side.
+		comp.hold_offset = null
 		var goal: Vector2 = _standoff_point(pos, asteroid.view.position, graph.bounding_radius + Config.COMP_MINE_STANDOFF)
 		return {"goal_pos": goal, "frame": asteroid.orbit, "target": null}
 
 	var target = nearest_target_edge(graph, asteroid.view.position, pos, comp.max_hardness())
 	if target == null:  # empty, or nothing soft enough: hold off the rock
+		comp.hold_offset = null
 		var goal2: Vector2 = _standoff_point(pos, asteroid.view.position, graph.bounding_radius + Config.COMP_MINE_STANDOFF)
 		return {"goal_pos": goal2, "frame": asteroid.orbit, "target": null}
+
+	# Can they already hit something from here? Then stay put (relative to
+	# the rock) and fire, rather than flying in close to the ideal spot —
+	# every metre closer is crash risk for nothing.
+	if target.dist <= Config.COMP_MINE_RANGE:
+		if comp.hold_offset == null:
+			comp.hold_offset = pos - asteroid.view.position
+			comp.hold_rock = asteroid.view
+		return {"goal_pos": asteroid.view.position + comp.hold_offset, "frame": asteroid.orbit, "target": target}
+
+	# Nothing in reach from here (e.g. the near face is mined away): move in
+	# to the ideal standoff from the nearest cuttable edge.
+	comp.hold_offset = null
 	var goal3: Vector2 = _standoff_point(pos, target.mid, Config.COMP_MINE_STANDOFF)
 	return {"goal_pos": goal3, "frame": asteroid.orbit, "target": target}
 
@@ -317,19 +396,41 @@ static func update(comp: Competitor, ctx: Dictionary, dt: float) -> bool:
 	# DESIGN.md §14.4: avoids ctx.gravity_bodies (star + all planets, not
 	# just home), matching the pygame original — matters once a level has
 	# more than one planet to fly past.
+	# The target is only exempt while heading to or working it; once
+	# they've turned for home it's just another rock to steer round.
+	var working: bool = comp.state == Competitor.OUTBOUND or comp.state == Competitor.MINING
 	var lookout: float = Config.COMP_ROCK_AVOID_RANGE + comp.velocity.length() * Config.COMP_ROCK_AVOID_LOOKAHEAD
 	var avoid_list: Array = []
+	var nearby_rocks: Array = []
 	for body in ctx.gravity_bodies:
 		avoid_list.append({"pos": body.position, "radius": body.body_radius, "frame": body})
 	for entry in ctx.asteroid_views:
-		if entry == comp.target:
+		if working and entry == comp.target:
+			continue
+		if entry.view.graph.nodes.is_empty():
 			continue
 		if entry.view.position.distance_to(coast_pos) < lookout:
 			avoid_list.append({"pos": entry.view.position, "radius": entry.view.graph.bounding_radius, "frame": entry.orbit})
+			nearby_rocks.append(entry)
 
-	var avoided: Dictionary = avoid_bodies(coast_pos, goal_pos, frame, avoid_list, Config.COMP_AVOID_MARGIN)
-	goal_pos = avoided.goal_pos
-	frame = avoided.frame
+	# A rock on a collision course comes first: match its motion (so it
+	# can't hit us) and slip sideways out of its way. Otherwise plan round
+	# whatever's in the way of the goal.
+	var threat = incoming_rock(coast_pos, comp.velocity, nearby_rocks, ctx.world_time)
+	var dodging: bool = threat != null
+	if dodging:
+		var away: Vector2 = threat.miss
+		if away.length() < 0.001:
+			away = coast_pos - threat.entry.view.position
+		if away.length() < 0.001:
+			away = Vector2(1, 0)
+		var clear: float = threat.entry.view.graph.bounding_radius * Config.COMP_AVOID_MARGIN + Config.COMP_EVADE_BUFFER
+		goal_pos = threat.entry.view.position + away.normalized() * clear
+		frame = threat.entry.orbit
+	else:
+		var avoided: Dictionary = avoid_bodies(coast_pos, goal_pos, frame, avoid_list, Config.COMP_AVOID_MARGIN)
+		goal_pos = avoided.goal_pos
+		frame = avoided.frame
 
 	# Gravity: part of each burn first makes up the difference between
 	# how the frame they're matching accelerates and what gravity does
@@ -356,7 +457,12 @@ static func update(comp: Competitor, ctx: Dictionary, dt: float) -> bool:
 	if Collisions.find_impact(previous_pos, comp.position, ctx.gravity_bodies, ctx.asteroid_entries, Config.SHIP_RADIUS):
 		return true
 
-	if comp.state == Competitor.OUTBOUND or comp.state == Competitor.MINING:
+	# Tractor in loose ore in reach — their own drops, and anyone else's.
+	_tractor(comp, ctx, dt)
+
+	if dodging:
+		pass  # mining and target decisions wait until the rock has gone by
+	elif comp.state == Competitor.OUTBOUND or comp.state == Competitor.MINING:
 		var rock = comp.target
 		var at_rock: bool = comp.position.distance_to(rock.view.position) <= rock.view.graph.bounding_radius + Config.COMP_MINE_RANGE
 		if rock.view.graph.nodes.size() == 0:
@@ -406,5 +512,40 @@ static func _mine(comp: Competitor, target: Dictionary, dt: float, ctx: Dictiona
 		if not ore.is_empty():
 			ctx.last_mined[rock.view] = ctx.world_time
 			for item in ore:
-				comp.add_to_cargo(item.material)
+				ctx.drop_ore.call(item)  # floats loose like the player's; _tractor() pulls it in
 			break
+
+static func _tractor(comp: Competitor, ctx: Dictionary, dt: float) -> void:
+	# Every COMP_TRACTOR_INTERVAL, grab the nearest loose ore within
+	# COMP_TRACTOR_RANGE that nobody is pulling yet — whoever mined it —
+	# if cargo has room after what's already in the beam. main.gd reels it
+	# in and calls add_to_cargo() on arrival.
+	comp.tractor_timer -= dt
+	if comp.tractor_timer > 0.0:
+		return
+	comp.tractor_timer = Config.COMP_TRACTOR_INTERVAL
+	var pulling: int = 0
+	var best = null
+	var best_d: float = Config.COMP_TRACTOR_RANGE
+	for item in ctx.loose_ore:
+		if item.pulled:
+			if item.puller == comp:
+				pulling += 1
+			continue
+		var d: float = comp.position.distance_to(item.view.position + item.offset)
+		if d <= best_d:
+			best = item
+			best_d = d
+	if best == null or comp.cargo_used() + pulling >= comp.cargo_capacity():
+		return
+	best.pos = best.view.position + best.offset
+	best.pulled = true
+	best.puller = comp
+
+static func loose_ore_counts(loose_ore: Array) -> Dictionary:
+	# Asteroid view (Node2D) -> how many unclaimed loose ore ride it.
+	var counts: Dictionary = {}
+	for item in loose_ore:
+		if not item.pulled:
+			counts[item.view] = counts.get(item.view, 0) + 1
+	return counts

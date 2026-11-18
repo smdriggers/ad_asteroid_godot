@@ -41,8 +41,13 @@ static func hp(id: int) -> float:
 static func color(id: int) -> Color:
 	return TABLE[id]["color"]
 
+# Extra hardness every material has in the current level, so each level
+# takes about one more laser tier to mine as fast as the last. main.gd
+# sets it when a level is built: (level - 1) * Config.HARDNESS_PER_LEVEL.
+static var hardness_bonus: int = 0
+
 static func hardness(id: int) -> int:
-	return id  # DESIGN.md §8: "Hardness equals the id"
+	return id + hardness_bonus  # DESIGN.md §8: "Hardness equals the id", plus the level's bonus
 
 const NAMES: Dictionary = {
 	IRON: "Iron", ALUMINUM: "Aluminum", COPPER: "Copper", LITHIUM: "Lithium",

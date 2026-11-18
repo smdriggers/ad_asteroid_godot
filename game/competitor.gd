@@ -23,6 +23,9 @@ var state: String = IDLE
 var target = null          # asteroid entry {"view": Node2D, "orbit": OrbitBody}, or null
 var mine_timer: float = 0.0
 var scan_timer: float = 0.0
+var tractor_timer: float = 0.0
+var hold_offset = null     # Vector2 from the target rock they're firing from, once in laser reach; null = not holding
+var hold_rock: Node2D = null  # the rock hold_offset is relative to
 var too_hard: Dictionary = {}   # view (Node2D) -> laser tier it was too hard at
 var cargo: Dictionary = {}      # material id -> unit count
 

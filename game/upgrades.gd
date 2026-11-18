@@ -21,7 +21,7 @@ const UPGRADES: Dictionary = {
 		"values": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 		"costs": [80, 200, 400, 800, 1600, 3200, 6400, 12800, 25600],
 	},
-	"range": {
+	"mining_range": {  # bolt lifetime in seconds; see mining_range() for the distance
 		"values": [1.2, 1.6, 2.0, 2.4, 3.0, 3.6, 4.4],
 		"costs": [30, 80, 150, 350, 800, 1800],
 	},
@@ -73,7 +73,7 @@ const LABELS: Dictionary = {
 	"laser_count": "Laser count",
 	"fire_rate": "Fire rate",
 	"laser_tier": "Laser tier",
-	"range": "Range",
+	"mining_range": "Mining range",
 	"cargo_capacity": "Cargo capacity",
 	"engine_power": "Engine power",
 	"scan_depth": "Scan depth",
@@ -92,7 +92,7 @@ const LEVEL_UP_TILE: String = "level_up"
 
 # DESIGN.md §13.4 grid order — the jump tile is last.
 const SHOP_TILES: Array[String] = [
-	"laser_count", "fire_rate", "laser_tier", "range", "cargo_capacity",
+	"laser_count", "fire_rate", "laser_tier", "mining_range", "cargo_capacity",
 	"engine_power", "scan_depth", "scan_range", "scan_width", "scan_pulse",
 	BUY_BOMB_TILE, "bomb_radius", "bomb_damage", "bomb_rate", "bomb_shrapnel",
 	LEVEL_UP_TILE,
@@ -112,6 +112,11 @@ static func level_up_cost(level: int) -> int:
 
 static func value_at(name: String, tier: int):
 	return UPGRADES[name]["values"][tier]
+
+static func mining_range(tier: int) -> float:
+	# Mining range in world px: how far a bolt travels (relative to the
+	# ship) before it expires. The tractor beam reaches exactly as far.
+	return Config.BOLT_SPEED * value_at("mining_range", tier)
 
 static func max_tier(name: String) -> int:
 	return UPGRADES[name]["values"].size() - 1

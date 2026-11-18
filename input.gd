@@ -75,6 +75,7 @@ static var touch_stick: Vector2 = Vector2.ZERO  # screen-space, length 0..1
 static var touch_blast: bool = false
 static var touch_bomb: bool = false
 static var touch_scan: bool = false
+static var touch_tractor: bool = false  # a finger that started the tractor beam is still down
 
 const STICK_AIM_ONLY: float = 0.35     # below this deflection the stick only turns the ship
 const STICK_FULL_THRUST: float = 0.75  # above this, full thrust; between, precision (half) thrust

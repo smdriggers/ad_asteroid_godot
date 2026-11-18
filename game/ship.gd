@@ -11,7 +11,7 @@ var destroyed: bool = false
 # Tiered upgrades (DESIGN.md §13.1), tier 0 = starting value for each. One
 # dict, keyed exactly like game/upgrades.gd's UPGRADES table.
 var upgrade_tiers: Dictionary = {
-	"laser_count": 0, "fire_rate": 0, "laser_tier": 0, "range": 0,
+	"laser_count": 0, "fire_rate": 0, "laser_tier": 0, "mining_range": 0,
 	"cargo_capacity": 0, "engine_power": 0, "scan_depth": 0, "scan_range": 0,
 	"scan_width": 0, "scan_pulse": 0, "bomb_radius": 0, "bomb_damage": 0,
 	"bomb_rate": 0, "bomb_shrapnel": 0,

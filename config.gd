@@ -19,7 +19,7 @@ const TRAJECTORY_X_SIZE: float = 8.0         # px; half-width of the crash X
 const SHIP_RADIUS: float = 6.0                  # px; draw/collision radius — ported from pygame config.py
 const SHIP_COLOR: Color = Color(0.2, 1.0, 0.6)  # placeholder neon color
 const TURN_RATE: float = 3.0                    # radians/sec while Q/E held — DESIGN.md §4.1
-const THRUST_ACCEL: float = 60.0                # px/sec^2 — ported from pygame config.py
+const THRUST_ACCEL: float = 100.0               # px/sec^2 — raised from pygame's 60
 const PRECISION_FACTOR: float = 0.5             # Shift multiplier on turn rate and thrust — DESIGN.md §4.2
 
 # --- Camera / zoom (DESIGN.md §6) ---
@@ -267,7 +267,7 @@ const LASER_SPACING: float = 10.0         # px between parallel bolts in a volle
 const FIRE_RATE: float = 3.0              # volleys/sec
 const BOLT_SPEED: float = 500.0           # px/sec, relative to the ship — ported from pygame config.py
 const BOLT_DAMAGE: float = 2.0
-const BOLT_LIFETIME: float = 1.2          # seconds; the "range" upgrade raises this later
+const BOLT_LIFETIME: float = 1.2          # seconds; the "mining_range" upgrade raises this later
 const BOLT_HIT_RADIUS: float = 6.0        # px; capsule radius around each outline edge
 const BOLT_TRAIL_LENGTH: float = 10.0     # px; purely visual
 const BOLT_COLOR: Color = Color(1.0, 1.0, 0.4)
@@ -287,7 +287,16 @@ const SHRAPNEL_LIFETIME: float = 0.4     # seconds before an unspent shrapnel bo
 # --- Ore and cargo (DESIGN.md §10) ---
 # Cargo capacity itself is tiered now (game/upgrades.gd's "cargo_capacity"),
 # starting at that table's tier 0 (20).
-const ORE_PICKUP_RADIUS: float = 40.0     # px; auto-pickup range for loose ore
+# Mined ore no longer goes straight to cargo: it floats loose, riding its
+# asteroid's orbit, until the player taps it (or right-clicks it) to pull
+# it in with the tractor beam.
+# The beam reaches as far as the laser (mining range, see
+# Upgrades.mining_range); holding the press keeps grabbing more ore,
+# nearest to the ship first.
+const TRACTOR_TAP_RADIUS: float = 48.0    # screen px; a press must land this close to in-range loose ore to start the beam
+const TRACTOR_GRAB_INTERVAL: float = 0.15 # seconds between grabs while the press is held
+const TRACTOR_SPEED: float = 250.0        # px/sec the beam reels ore in, on top of the ship's own speed
+const TRACTOR_BEAM_COLOR: Color = Color(0.6, 1.0, 0.6)
 
 # --- Scanning (DESIGN.md §11) ---
 # Range, depth and width are tiered now (game/upgrades.gd's "scan_range",

@@ -110,15 +110,20 @@ func _tile_text(tile: String) -> Dictionary:
 
 	var label: String = Upgrades.LABELS[tile]
 	var tier: int = ship.upgrade_tiers[tile]
-	var value_text: String = _value_text(Upgrades.value_at(tile, tier))
+	var value_text: String = _tile_value_text(tile, tier)
 	var cost = Upgrades.next_cost(tile, tier)
 	if cost == null:
 		return {"label": label, "detail": value_text, "price": "MAX", "color": Config.HUD_TEXT_COLOR}
-	var next_text: String = _value_text(Upgrades.value_at(tile, tier + 1))
+	var next_text: String = _tile_value_text(tile, tier + 1)
 	return {
 		"label": label, "detail": "%s -> %s" % [value_text, next_text],
 		"price": "%dcr" % cost, "color": _affordable(cost),
 	}
+
+func _tile_value_text(tile: String, tier: int) -> String:
+	if tile == "mining_range":
+		return str(roundi(Upgrades.mining_range(tier)))  # distance, not bolt lifetime
+	return _value_text(Upgrades.value_at(tile, tier))
 
 func _value_text(value) -> String:
 	if value == null:

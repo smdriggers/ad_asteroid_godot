@@ -676,8 +676,11 @@ func drop_loose_ore(ore: Dictionary) -> void:
 	# Player and competitor mining both end here: the ore floats loose for
 	# anyone to tractor in. puller = null while loose or pulled by the
 	# player, else the Competitor pulling it.
+	# dropper / dropped_at: who mined it (null = player) and when, so
+	# competitors wait COMP_STEAL_DELAY before snatching anyone else's.
 	loose_ore.append({"view": ore.view, "offset": ore.offset, "material": ore.material,
-			"pulled": false, "pos": Vector2.ZERO, "puller": null})
+			"pulled": false, "pos": Vector2.ZERO, "puller": null,
+			"dropper": ore.get("dropper", null), "dropped_at": world_time})
 
 func _release_loose_ore(puller) -> void:
 	# A competitor crashed: whatever it was reeling in floats loose again,

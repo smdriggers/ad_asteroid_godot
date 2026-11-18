@@ -512,6 +512,7 @@ static func _mine(comp: Competitor, target: Dictionary, dt: float, ctx: Dictiona
 		if not ore.is_empty():
 			ctx.last_mined[rock.view] = ctx.world_time
 			for item in ore:
+				item["dropper"] = comp  # their own drops aren't subject to the steal delay
 				ctx.drop_ore.call(item)  # floats loose like the player's; _tractor() pulls it in
 			break
 
@@ -532,6 +533,8 @@ static func _tractor(comp: Competitor, ctx: Dictionary, dt: float) -> void:
 			if item.puller == comp:
 				pulling += 1
 			continue
+		if item.dropper != comp and ctx.world_time - item.dropped_at < Config.COMP_STEAL_DELAY:
+			continue  # someone else's, too fresh to snatch yet
 		var d: float = comp.position.distance_to(item.view.position + item.offset)
 		if d <= best_d:
 			best = item

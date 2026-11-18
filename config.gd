@@ -361,6 +361,7 @@ const COMP_EVADE_HORIZON: float = 2.0      # seconds ahead they check whether a 
 const COMP_EVADE_BUFFER: float = 20.0      # world units of clearance (beyond rock + ship radius) that counts as "too close"
 const COMP_TRACTOR_RANGE: float = 180.0    # world units; their tractor beam's reach for loose ore (more than COMP_MINE_RANGE, so they reach their own drops)
 const COMP_TRACTOR_INTERVAL: float = 0.25  # seconds between grabs
+const COMP_STEAL_DELAY: float = 3.0        # seconds loose ore must have been floating before a competitor will snatch it (their own drops: no wait)
 const COMP_HEADING_MIN_DV: float = 0.4    # burns smaller than this are strafes; they don't turn the ship
 const COMP_UPGRADES: Array[String] = ["laser_tier", "fire_rate", "cargo_capacity", "engine_power"]
 const COMP_COLOR: Color = Color(1.0, 0.4, 0.0)  # amber; all competitors share it

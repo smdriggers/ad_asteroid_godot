@@ -302,11 +302,14 @@ const SCAN_PULSE_FLASH_TIME: float = 0.15 # seconds an automatic pulse's beam st
 const SCAN_BEAM_COLOR: Color = Color(0.4, 1.0, 1.0)
 
 # --- Look ---
-# Neon glow (render/glow.gd): halo strokes drawn under every outline.
+# Neon tubes (render/glow.gd): tight halo + solid colored tube + white-hot core.
 const GLOW_ENABLED: bool = true
-const GLOW_PASSES: Array = [[10.0, 0.06], [6.0, 0.12], [3.0, 0.22]]  # [extra width in screen px, alpha], widest first
+const GLOW_PASSES: Array = [[6.0, 0.10], [2.5, 0.30]]  # halo: [extra width in screen px, alpha], widest first
 const GLOW_INTENSITY: float = 1.0     # multiplies every halo's alpha
-const GLOW_STAR_STRENGTH: float = 2.5 # the star's halo is this much wider
+const GLOW_TUBE_PX: float = 2.0       # colored tube is at least this many screen px wide
+const GLOW_CORE_PX: float = 0.8       # hot core width, screen px
+const GLOW_CORE_WHITEN: float = 0.6   # how far the core is pushed toward white (0 = tube color, 1 = pure white)
+const GLOW_STAR_STRENGTH: float = 1.8 # the star's halo is this much wider
 const BG_COLOR: Color = Color(0, 0, 0)  # black background (also set as the project's default clear color)
 
 # Thrust puffs (DESIGN.md §16.3); ported from pygame config.py. Purely

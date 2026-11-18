@@ -58,6 +58,19 @@ jobs:
           ~/godot/godot --headless --export-release "Web" export/web/index.html
           test -f export/web/index.html
 
+      # GitHub Pages serves everything with max-age=600, and Godot's service
+      # worker fetches the game files through the browser's HTTP cache. So a
+      # new service worker installed within 10 minutes of the last visit can
+      # cache the *previous* index.pck under the new version and stay stuck
+      # on it. Make its fetches revalidate with the server (cheap: ETag) instead.
+      - name: Make the service worker bypass the HTTP cache
+        run: |
+          sw=export/web/index.service.worker.js
+          sed -i "s|cache.addAll(CACHED_FILES)|cache.addAll(CACHED_FILES.map((f) => new Request(f, { cache: 'no-cache' })))|" $sw
+          sed -i "s|response = await self.fetch(event.request);|response = await self.fetch(event.request, { cache: 'no-cache' });|" $sw
+          grep -q "CACHED_FILES.map((f) => new Request(f, { cache: 'no-cache' }))" $sw
+          grep -q "self.fetch(event.request, { cache: 'no-cache' })" $sw
+
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3

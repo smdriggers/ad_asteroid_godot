@@ -4,7 +4,7 @@ extends Node
 # Placeholder values throughout; tune by playing (per CLAUDE.md).
 
 # --- Simulation ---
-const G: float = 50.0              # gravitational constant — ported from pygame config.py
+const G: float = 500.0             # gravitational constant. TEST: 10x the pygame value (50) to try GM x10 — revert to 50.0 to undo
 const SOFTENING: float = 50.0      # px; prevents blow-ups at close range — ported from pygame config.py
 const SIM_DT: float = 1.0 / 60.0   # fixed sim step; must match Project Settings -> Physics -> Common -> Physics Ticks Per Second
 

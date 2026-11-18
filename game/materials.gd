@@ -19,16 +19,17 @@ const IRIDIUM: int = 10
 # Value doubles each rung; HP grows roughly x1.5 each rung — DESIGN.md §8.
 # Placeholder numbers throughout; tune by playing.
 static var TABLE: Dictionary = {
-	IRON:     {"value": 1,   "hp": 2.0,  "color": Color(0.8, 0.3, 0.2)},
-	ALUMINUM: {"value": 2,   "hp": 3.0,  "color": Color(0.7, 0.75, 0.8)},
-	COPPER:   {"value": 4,   "hp": 5.0,  "color": Color(0.85, 0.5, 0.2)},
-	LITHIUM:  {"value": 8,   "hp": 8.0,  "color": Color(0.6, 0.9, 1.0)},
-	TITANIUM: {"value": 16,  "hp": 12.0, "color": Color(0.5, 0.5, 0.6)},
-	TUNGSTEN: {"value": 32,  "hp": 18.0, "color": Color(0.4, 0.4, 0.5)},
-	SILVER:   {"value": 64,  "hp": 27.0, "color": Color(0.85, 0.85, 0.9)},
-	GOLD:     {"value": 128, "hp": 40.0, "color": Color(1.0, 0.85, 0.2)},
-	PLATINUM: {"value": 256, "hp": 60.0, "color": Color(0.8, 0.9, 1.0)},
-	IRIDIUM:  {"value": 512, "hp": 90.0, "color": Color(0.9, 0.95, 1.0)},
+	# Colors are the original project's palette (design.md / MVP.md).
+	IRON:     {"value": 1,   "hp": 2.0,  "color": Color("#FF4422")},  # rust red
+	ALUMINUM: {"value": 2,   "hp": 3.0,  "color": Color("#7799CC")},  # steel blue
+	COPPER:   {"value": 4,   "hp": 5.0,  "color": Color("#FF8833")},  # copper orange
+	LITHIUM:  {"value": 8,   "hp": 8.0,  "color": Color("#99FF55")},  # light green
+	TITANIUM: {"value": 16,  "hp": 12.0, "color": Color("#44DDFF")},  # cyan
+	TUNGSTEN: {"value": 32,  "hp": 18.0, "color": Color("#8855FF")},  # violet
+	SILVER:   {"value": 64,  "hp": 27.0, "color": Color("#E6E6F0")},  # silver-white
+	GOLD:     {"value": 128, "hp": 40.0, "color": Color("#FFD700")},  # gold
+	PLATINUM: {"value": 256, "hp": 60.0, "color": Color("#66FFAA")},  # mint
+	IRIDIUM:  {"value": 512, "hp": 90.0, "color": Color("#FFFFFF")},  # white
 }
 
 static func value(id: int) -> int:

@@ -285,6 +285,14 @@ const TRACTOR_TAP_RADIUS: float = 48.0    # screen px; a press must land this cl
 const TRACTOR_GRAB_INTERVAL: float = 0.15 # seconds between grabs while the press is held
 const TRACTOR_SPEED: float = 250.0        # px/sec the beam reels ore in, on top of the ship's own speed
 const TRACTOR_BEAM_COLOR: Color = Color(0.6, 1.0, 0.6)
+# Beam look: flattened rings travelling up the beam from the ore to the
+# ship, widest at the ore and narrowing toward the ship (abduction beam).
+# Sizes are in screen px so the beam looks the same at every zoom.
+const TRACTOR_RING_SPACING: float = 14.0  # screen px between rings along the beam
+const TRACTOR_RING_SPEED: float = 40.0    # screen px/sec the rings travel toward the ship
+const TRACTOR_RING_WIDTH_FAR: float = 14.0  # half-width of a ring at the ore end, screen px
+const TRACTOR_RING_WIDTH_NEAR: float = 4.0  # half-width at the ship end
+const TRACTOR_RING_FLATNESS: float = 0.35   # ring depth along the beam / its width
 
 # --- Scanning (DESIGN.md §11) ---
 # Range, depth and width are tiered now (game/upgrades.gd's "scan_range",

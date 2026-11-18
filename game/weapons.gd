@@ -20,7 +20,7 @@ func _volley(ship: Ship) -> Array:
 	var forward: Vector2 = Vector2(0, -1).rotated(ship.heading)
 	var side: Vector2 = forward.rotated(PI / 2.0)
 	var count: int = Upgrades.value_at("laser_count", ship.upgrade_tiers.laser_count)
-	var life: float = Upgrades.value_at("range", ship.upgrade_tiers.range)
+	var life: float = Upgrades.value_at("mining_range", ship.upgrade_tiers.mining_range)
 	var mid: float = float(count - 1) / 2.0
 	var bolts: Array = []
 	for i in range(count):

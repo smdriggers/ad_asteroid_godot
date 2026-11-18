@@ -71,7 +71,9 @@ var pulse_beam: Dictionary = {}
 var pulse_beam_timer: float = 0.0    # >0 while a pulse's beam is still flashing — DESIGN.md §11.3
 
 var cargo: Cargo = Cargo.new()
-var loose_ore: Array = []  # Array of {"view": Node2D, "offset": Vector2, "material": int}
+var loose_ore: Array = []  # Array of {"view", "offset", "material", "pulled": bool, "pos": world Vector2 once pulled}
+var tractor_held: bool = false      # the press that started the tractor beam is still down
+var tractor_grab_timer: float = 0.0
 
 var credits: int = 0
 var credits_earned: int = 0
@@ -189,6 +191,12 @@ func _build_level(lvl: int) -> void:
 func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch and event.pressed:
 		_handle_screen_tap(event.position)
+		return
+
+	# Desktop tractor beam: hold right mouse on loose ore (left click fires).
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT \
+			and not showing_instructions and not game_over and not docked:
+		tractor_start(event.position)
 		return
 
 	# DESIGN.md §15.1: any key or mouse click dismisses the instructions.
@@ -394,15 +402,7 @@ func _physics_process(delta: float) -> void:
 			sparks.remove_at(i)
 		i -= 1
 
-	# Loose-ore auto-pickup, within range and only if cargo has room —
-	# DESIGN.md §10.
-	var j: int = loose_ore.size() - 1
-	while j >= 0:
-		var item: Dictionary = loose_ore[j]
-		var pos: Vector2 = item.view.position + item.offset
-		if ship.position.distance_to(pos) <= Config.ORE_PICKUP_RADIUS and cargo.add(item.material):
-			loose_ore.remove_at(j)
-		j -= 1
+	_step_tractor(delta)
 
 	_check_docking()
 	_step_competitors(delta, asteroid_entries)
@@ -629,15 +629,78 @@ func _jump_to_level(next_level: int) -> void:
 	# set from the dock that opened this shop screen.
 
 func _collect_ore(ore: Dictionary) -> void:
-	# DESIGN.md §10: one node removed = one ore unit, credited the
-	# instant it's removed, no drift/homing. If cargo is full it becomes
-	# loose ore riding the source asteroid's orbit at a fixed offset.
+	# One node removed = one ore unit. It floats loose, riding the source
+	# asteroid's orbit at a fixed offset, until tractored in (tractor_start / _step_tractor).
 	cargo.record_mined(ore.material)
 	last_mined[ore.view] = world_time  # DESIGN.md §14.2: Scavengers watch for this
-	if cargo.add(ore.material):
-		pass
-	else:
-		loose_ore.append({"view": ore.view, "offset": ore.offset, "material": ore.material})
+	loose_ore.append({"view": ore.view, "offset": ore.offset, "material": ore.material, "pulled": false, "pos": Vector2.ZERO})
+
+static func loose_ore_position(item: Dictionary) -> Vector2:
+	return item.pos if item.pulled else item.view.position + item.offset
+
+func mining_range() -> float:
+	return Upgrades.mining_range(ship.upgrade_tiers.mining_range)
+
+func tractor_start(screen_pos: Vector2) -> bool:
+	# A press (touch or right mouse) starts the tractor beam if it lands
+	# within TRACTOR_TAP_RADIUS screen px of loose ore inside mining range.
+	# Grabs one piece at once; holding keeps grabbing (_step_tractor).
+	# Returns true if the press was taken, so the joystick ignores it.
+	var to_screen: Transform2D = get_viewport().get_canvas_transform()
+	var reach: float = mining_range()
+	for item in loose_ore:
+		if item.pulled:
+			continue
+		var pos: Vector2 = loose_ore_position(item)
+		if ship.position.distance_to(pos) <= reach \
+				and (to_screen * pos).distance_to(screen_pos) <= Config.TRACTOR_TAP_RADIUS:
+			tractor_held = true
+			_tractor_grab_next()
+			tractor_grab_timer = Config.TRACTOR_GRAB_INTERVAL
+			return true
+	return false
+
+func _tractor_grab_next() -> void:
+	# Pulls in the unpulled loose ore nearest the ship, within mining range,
+	# if cargo has room for it after the ore already in the beam.
+	var reserved: int = 0
+	var best: Dictionary = {}
+	var best_d: float = mining_range()
+	for item in loose_ore:
+		if item.pulled:
+			reserved += 1
+			continue
+		var d: float = ship.position.distance_to(loose_ore_position(item))
+		if d <= best_d:
+			best_d = d
+			best = item
+	if best.is_empty() or cargo.room() - reserved <= 0:
+		return
+	best.pos = loose_ore_position(best)
+	best.pulled = true
+
+func _step_tractor(delta: float) -> void:
+	# While the press that started the beam is held, grab another piece
+	# every TRACTOR_GRAB_INTERVAL; then reel every grabbed piece toward the
+	# ship, landing it in cargo on arrival (its slot was reserved on grab).
+	if not (PlayerInput.touch_tractor or Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)):
+		tractor_held = false
+	if tractor_held:
+		tractor_grab_timer -= delta
+		if tractor_grab_timer <= 0.0:
+			tractor_grab_timer += Config.TRACTOR_GRAB_INTERVAL
+			_tractor_grab_next()
+
+	var reel: float = (Config.TRACTOR_SPEED + ship.velocity.length()) * delta
+	var j: int = loose_ore.size() - 1
+	while j >= 0:
+		var item: Dictionary = loose_ore[j]
+		if item.pulled:
+			item.pos = item.pos.move_toward(ship.position, reel)
+			if item.pos.distance_to(ship.position) <= Config.SHIP_RADIUS:
+				cargo.add(item.material)
+				loose_ore.remove_at(j)
+		j -= 1
 
 func place_ship_in_launch_orbit() -> void:
 	# DESIGN.md §12.2: launch places the ship in a circular orbit round the

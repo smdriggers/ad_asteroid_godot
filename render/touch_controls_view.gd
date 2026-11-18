@@ -24,13 +24,14 @@ var stick_finger: int = -1
 var stick_origin: Vector2 = Vector2.ZERO
 var stick_pos: Vector2 = Vector2.ZERO
 var button_fingers: Dictionary = {}  # finger index -> button id
+var tractor_finger: int = -1  # finger holding the tractor beam, or -1
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 func _process(_delta: float) -> void:
 	var want_visible: bool = PlayerInput.touch_ui() and _in_flight()
-	if not want_visible and (stick_finger != -1 or not button_fingers.is_empty()):
+	if not want_visible and (stick_finger != -1 or tractor_finger != -1 or not button_fingers.is_empty()):
 		_release_all()
 	visible = want_visible
 	if visible:
@@ -59,6 +60,8 @@ func _press(finger: int, pos: Vector2) -> void:
 	var hit: String = _button_at(pos)
 	if hit != "":
 		button_fingers[finger] = hit
+	elif tractor_finger == -1 and main.tractor_start(pos):
+		tractor_finger = finger  # pressed on loose ore: tractor beam, not the stick
 	elif pos.x < size.x * 0.5 and stick_finger == -1:
 		# Floating stick: the base jumps to wherever the thumb lands (kept
 		# fully on screen), so the player never has to hunt for it.
@@ -71,6 +74,8 @@ func _press(finger: int, pos: Vector2) -> void:
 func _release(finger: int) -> void:
 	if finger == stick_finger:
 		stick_finger = -1
+	if finger == tractor_finger:
+		tractor_finger = -1
 	button_fingers.erase(finger)
 
 func _drag(finger: int, pos: Vector2) -> void:
@@ -84,6 +89,7 @@ func _drag(finger: int, pos: Vector2) -> void:
 
 func _release_all() -> void:
 	stick_finger = -1
+	tractor_finger = -1
 	button_fingers.clear()
 	_publish()
 
@@ -96,6 +102,7 @@ func _publish() -> void:
 	PlayerInput.touch_blast = held.has("blast")
 	PlayerInput.touch_bomb = held.has("bomb")
 	PlayerInput.touch_scan = held.has("scan")
+	PlayerInput.touch_tractor = tractor_finger != -1
 
 func _button_center(b: Dictionary) -> Vector2:
 	return size + b.offset

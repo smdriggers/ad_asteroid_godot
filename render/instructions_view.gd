@@ -12,6 +12,7 @@ const LINES: Array[String] = [
 	"G           - switch between mine and scan modes",
 	"Hold LMB / Space, mine mode - fire laser at asteroids",
 	"Hold LMB / Space, scan mode - beam reveals the ore it touches",
+	"Hold RMB on loose ore - tractor beam ore in mining range into cargo",
 	"Arrows / Enter - pick and buy upgrades at the station",
 	"Tab         - launch from the station",
 ]
@@ -22,6 +23,7 @@ const TOUCH_LINES: Array[String] = [
 	"BLAST       - fire laser at asteroids",
 	"BOMB        - drop a bomb (buy them at the station)",
 	"SCAN        - hold to reveal the ore the beam touches",
+	"Hold on ore - tractor beam ore in mining range into cargo",
 	"Station     - tap a tile to select, tap again to buy",
 ]
 

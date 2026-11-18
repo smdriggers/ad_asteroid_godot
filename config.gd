@@ -108,7 +108,11 @@ const NEAR_DEATH_HP_FRACTION: float = 0.25  # below this share of HP a node's ed
 const NEAR_DEATH_PULSE_HZ: float = 4.0      # pulses/sec for a nearly destroyed node — §16.2
 
 # --- System generation (DESIGN.md §7.4-7.9, §3.5) ---
-const SYSTEM_SEED: int = 1  # every level is built from this — ported from pygame config.py
+# Seed for building each system. -1 = a fresh random seed every time a
+# system is built (new run, restart, level jump); any other value pins
+# every level to that seed, e.g. 1 to match the pygame project. The seed
+# used is printed to the console.
+const SYSTEM_SEED: int = -1
 # Empty space every belt keeps from each planet's gravity range. Documents
 # how LEVELS was laid out (levels 2-3 satisfy it); not enforced at
 # generation, so level 1's 1400 inner edge still touches its planet's range.

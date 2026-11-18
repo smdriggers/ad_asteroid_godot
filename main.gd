@@ -26,6 +26,7 @@ var world_time: float = 0.0
 var gravity_bodies: Array = []
 var fatal_bodies: Array = []
 var trajectory_result: Trajectory.Result = null
+var system_seed: int = 0  # seed the current level's asteroids were built from (see setup_asteroids)
 var show_trajectory: bool = true  # toggled by T or the PATH button; off also skips the simulation
 
 func toggle_trajectory() -> void:
@@ -756,7 +757,11 @@ func setup_asteroids() -> void:
 	# DESIGN.md §7.4-7.9, §3.4-3.5: belt generation for the current level.
 	# No gravity; fatal only via mining collision handling elsewhere.
 	var rng := RandomNumberGenerator.new()
-	rng.seed = Config.SYSTEM_SEED
+	if Config.SYSTEM_SEED >= 0:
+		rng.seed = Config.SYSTEM_SEED
+	else:
+		rng.randomize()
+	system_seed = rng.seed  # before generation advances the state
 	var rocks: Array = SystemGen.generate_system(level, rng)
 	var view_script: Script = load("res://render/asteroid_view.gd")
 
@@ -781,7 +786,7 @@ func setup_asteroids() -> void:
 	ore_fraction = 1.0
 	ore_count_timer = 0.0
 	stripped_time = null
-	print("Generated %d rocks, %d nodes total: %s" % [rocks.size(), total_nodes, profile_counts])
+	print("Level %d, seed %d: generated %d rocks, %d nodes total: %s" % [level, system_seed, rocks.size(), total_nodes, profile_counts])
 
 func _handle_game_over_input() -> void:
 	# DESIGN.md §15.4: Enter starts over. Reuses the shop's buy-key check —
@@ -793,8 +798,8 @@ func _handle_game_over_input() -> void:
 
 func _restart_game() -> void:
 	# DESIGN.md §15.4: a completely new run — level 1, no credits, upgrades
-	# or bombs, a fresh competitor group, docked at home. The system
-	# regenerates from the same SYSTEM_SEED, so it's identical but unmined.
+	# or bombs, a fresh competitor group, docked at home. The system is
+	# rebuilt from a new random seed (unless Config.SYSTEM_SEED pins one).
 	game_over = false
 	$GameOver.visible = false
 

@@ -44,6 +44,12 @@ func _draw() -> void:
 	y += Config.HUD_LINE_HEIGHT
 	_centered(font, "Tap to begin" if touch else "Press any key to begin", Config.HUD_TEXT_COLOR, cx, y, 18)
 
+	# Build label, bottom-right, so it's easy to tell which version is running.
+	var build: String = "build " + BuildInfo.LABEL
+	var bw: float = font.get_string_size(build, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
+	draw_string(font, Vector2(size.x - bw - Config.HUD_MARGIN, size.y - Config.HUD_MARGIN), build,
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(Config.HUD_TEXT_COLOR, 0.5))
+
 func _centered(font: Font, text: String, color: Color, cx: float, y: float, font_size: int) -> void:
 	var tw: float = font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
 	draw_string(font, Vector2(cx - tw / 2.0, y), text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, color)

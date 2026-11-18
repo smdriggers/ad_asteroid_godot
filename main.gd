@@ -125,6 +125,26 @@ func _ready() -> void:
 	dock_armed = false  # spawning in the launch orbit is just like a launch — needs to clear the planet first
 	setup_asteroids()
 
+	# Web (PWA) builds load from the browser's cache first, so a new deploy
+	# only shows up after the old copy is closed. Godot tells us when a newer
+	# build has been downloaded in the background; apply it right away on the
+	# start screen, otherwise at the next game over, so a run is never cut off.
+	if OS.has_feature("web"):
+		JavaScriptBridge.pwa_update_available.connect(_on_pwa_update_available)
+		if JavaScriptBridge.pwa_needs_update():
+			_on_pwa_update_available()
+
+var pwa_update_pending: bool = false
+
+func _on_pwa_update_available() -> void:
+	pwa_update_pending = true
+	_apply_pwa_update_if_safe()
+
+func _apply_pwa_update_if_safe() -> void:
+	if pwa_update_pending and (showing_instructions or game_over):
+		pwa_update_pending = false
+		JavaScriptBridge.pwa_update()  # activates the new build and reloads the page
+
 func _build_level(lvl: int) -> void:
 	# Builds a level's star/planets/stations from Config.LEVELS[lvl]
 	# (DESIGN.md §3.4). Planets and stations vary in count per level, so
@@ -265,6 +285,7 @@ func _physics_process(delta: float) -> void:
 		game_over = true
 		game_over_at_msec = Time.get_ticks_msec()
 		$GameOver.visible = true
+		_apply_pwa_update_if_safe()
 		return
 
 	_debug_top_up()

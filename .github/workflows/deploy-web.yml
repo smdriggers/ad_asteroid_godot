@@ -44,6 +44,13 @@ jobs:
           unzip -q templates.tpz -d templates
           mv templates/templates/* ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable/
 
+      - name: Stamp build label
+        run: |
+          echo 'extends RefCounted' > build_info.gd
+          echo 'class_name BuildInfo' >> build_info.gd
+          echo "const LABEL: String = \"${GITHUB_RUN_NUMBER} (${GITHUB_SHA::7})\"" >> build_info.gd
+          cat build_info.gd
+
       - name: Export web build
         run: |
           mkdir -p export/web

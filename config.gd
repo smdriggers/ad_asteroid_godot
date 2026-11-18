@@ -108,7 +108,11 @@ const NEAR_DEATH_HP_FRACTION: float = 0.25  # below this share of HP a node's ed
 const NEAR_DEATH_PULSE_HZ: float = 4.0      # pulses/sec for a nearly destroyed node — §16.2
 
 # --- System generation (DESIGN.md §7.4-7.9, §3.5) ---
-const SYSTEM_SEED: int = 12345
+const SYSTEM_SEED: int = 1  # every level is built from this — ported from pygame config.py
+# Empty space every belt keeps from each planet's gravity range. Documents
+# how LEVELS was laid out (levels 2-3 satisfy it); not enforced at
+# generation, so level 1's 1400 inner edge still touches its planet's range.
+const BELT_CLEARANCE: float = 300.0
 
 # --- Levels (DESIGN.md §3.4) ---
 # Each level is its own solar system, all at the same scale. main.gd reads
@@ -125,9 +129,7 @@ const LEVELS: Dictionary = {
 		"zoom_min": 0.1,                 # ported from pygame config.py
 		"comp_max": 5,                   # ported from pygame config.py (COMP_MAX_S1)
 		"planets": [{"orbit_radius": 1000.0, "phase": 0.0}],
-		# This port's own pre-existing belt tuning (outside the planet's
-		# orbit, per DESIGN.md §3.4), not pygame's exact (1400, 2200, 20).
-		"belts": [{"inner": 1500.0, "outer": 2200.0, "count": 15, "kind": "mixed"}],
+		"belts": [{"inner": 1400.0, "outer": 2200.0, "count": 20, "kind": "mixed"}],  # ported from pygame config.py
 	},
 	2: {
 		# Three planets spread round the star, each with a station; three
@@ -169,9 +171,7 @@ const LEVEL_UP_BASE_COST: int = 1000  # jump cost from level n: this × the Fibo
 # own profile weights (used instead of ASTEROID_PROFILE_WEIGHTS below).
 # Any size can roll any profile — DESIGN.md §3.5.
 const BELT_KINDS: Dictionary = {
-	# Keeps this port's own pre-existing size tuning (not pygame's
-	# 0.25/0.35) since "mixed" is already used and tuned for level 1.
-	"mixed": {"sizes": {"pebble": 0.6, "small": 0.4}},
+	"mixed": {"sizes": {"pebble": 0.25, "small": 0.35}},  # default profile weights — ported from pygame config.py
 	"iron": {  # lots of plain iron rock — ported from pygame config.py
 		"sizes": {"pebble": 0.3, "small": 0.7},
 		"profiles": {"iron_slug": 0.85, "mixed_common": 0.15},
@@ -191,11 +191,12 @@ const ASTEROID_RINGS: Dictionary = {"pebble": 2.0, "small": 4.0}
 const ASTEROID_SHAPE_NOISE: Dictionary = {"pebble": 0.6, "small": 1.0}
 const ASTEROID_NOISE_BUCKETS: int = 8
 
-# Profile weights (DESIGN.md §7.6 table); carried over from this
-# project's earlier system-gen-v2 planning doc.
+# Profile weights (DESIGN.md §7.6 table) — ported from pygame config.py.
+# Its table has no "hollow", so hollow rocks no longer generate (the
+# profile's code in game/system_gen.gd is kept; add it back here to use it).
 const ASTEROID_PROFILE_WEIGHTS: Dictionary = {
 	"iron_slug": 0.20, "mixed_common": 0.20, "copper_vein": 0.15, "rich_core": 0.12,
-	"pocket_rock": 0.10, "deep_vein": 0.08, "hollow": 0.07, "layered_gem": 0.05,
+	"pocket_rock": 0.10, "deep_vein": 0.08, "layered_gem": 0.05,
 	"vein_gem": 0.02, "jackpot": 0.01,
 }
 
@@ -238,7 +239,7 @@ const POCKET_SURFACE_MARGIN_FRAC: float = 0.15
 const POCKET_PLACEMENT_TRIES: int = 10
 
 # Nuggets (DESIGN.md §7.7).
-const NUGGET_COUNT: int = 2
+const NUGGET_COUNT: int = 3  # per level, all in the belt with the largest inner radius — ported from pygame config.py
 const NUGGET_MATERIALS: Array[int] = [7, 8, 9, 10]  # silver..iridium
 
 # Ore budget (DESIGN.md §7.8): fraction of the system's total nodes each

@@ -37,6 +37,47 @@ func set_zoom_scale(z: float) -> void:
 	zoom_scale = clamp(z, zoom_min, Config.ZOOM_MAX)
 	_apply()
 
+# --- Opening shot: whole system, then glide in to the ship ---
+# The camera rides the ship, so the "system view" is the camera pushed
+# back onto the star with `offset` (world units) at zoom_min, then eased
+# to no offset at the player's zoom. main.gd freezes the sim meanwhile.
+
+var intro_time: float = -1.0   # < 0 = no intro running
+var intro_from_offset: Vector2 = Vector2.ZERO
+var intro_to_zoom: float = Config.ZOOM_DEFAULT
+
+func intro_active() -> bool:
+	return intro_time >= 0.0
+
+func start_intro(star_offset: Vector2) -> void:
+	# star_offset: star position minus ship position.
+	intro_from_offset = star_offset
+	intro_to_zoom = zoom_scale
+	intro_time = 0.0
+	_step_intro_view()
+
+func step_intro(delta: float) -> void:
+	if not intro_active():
+		return
+	intro_time += delta
+	if intro_time >= Config.INTRO_HOLD + Config.INTRO_ZOOM_TIME:
+		end_intro()
+	else:
+		_step_intro_view()
+
+func end_intro() -> void:
+	intro_time = -1.0
+	offset = Vector2.ZERO
+	set_zoom_scale(intro_to_zoom)
+
+func _step_intro_view() -> void:
+	var t: float = clampf((intro_time - Config.INTRO_HOLD) / Config.INTRO_ZOOM_TIME, 0.0, 1.0)
+	var e: float = t * t * (3.0 - 2.0 * t)  # ease in and out
+	offset = intro_from_offset * (1.0 - e)
+	# Log space, so the zoom-in feels even from system scale down to ship scale.
+	zoom_scale = exp(lerpf(log(zoom_min), log(intro_to_zoom), e))
+	_apply()
+
 func _apply() -> void:
 	zoom = Vector2(zoom_scale, zoom_scale)
 

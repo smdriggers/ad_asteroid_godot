@@ -32,6 +32,8 @@ const ZOOM_MAX: float = 3.0          # ported from pygame config.py
 const ZOOM_SPEED: float = 1.1        # multiplier/divisor applied per wheel notch — ported from pygame config.py
 const THRUST_ZOOM_EXPONENT: float = 1.0  # DESIGN.md §4.2: thrust *= (ZOOM_DEFAULT/zoom)^this
 const THRUST_ZOOM_CAP: float = 1.0       # zoom past this no longer weakens thrust, so zoomed-in play can still escape planet gravity
+const INTRO_HOLD: float = 1.2        # seconds the opening shot holds on the whole system (level zoom_min, centred on the star)
+const INTRO_ZOOM_TIME: float = 2.5   # seconds it then takes to glide in to the ship at the player's zoom
 # Zoom is manual: the zoom bar on the right edge (render/zoom_bar_view.gd)
 # spans [level zoom_min, ZOOM_MAX] in log scale; the wheel nudges it.
 

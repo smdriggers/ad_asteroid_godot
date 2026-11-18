@@ -26,6 +26,7 @@ var world_time: float = 0.0
 var gravity_bodies: Array = []
 var fatal_bodies: Array = []
 var trajectory_result: Trajectory.Result = null
+var intro_pending: bool = false  # a new system was built while docked: play the opening shot on the next launch
 var system_seed: int = 0  # seed the current level's asteroids were built from (see setup_asteroids)
 var show_trajectory: bool = true  # toggled by T or the PATH button; off also skips the simulation
 
@@ -236,6 +237,14 @@ func _build_level(lvl: int) -> void:
 		s.position = s.position_at(world_time)
 
 func _input(event: InputEvent) -> void:
+	# Any key, click or tap skips the opening shot.
+	var cam: CameraControl = $Ship/Camera2D as CameraControl
+	if cam.intro_active() and event.is_pressed() and not event.is_echo() \
+			and (event is InputEventKey or event is InputEventMouseButton or event is InputEventScreenTouch):
+		cam.end_intro()
+		get_viewport().set_input_as_handled()
+		return
+
 	if event is InputEventScreenTouch and event.pressed:
 		_handle_screen_tap(event.position)
 		return
@@ -254,8 +263,7 @@ func _input(event: InputEvent) -> void:
 
 	# DESIGN.md §15.1: any key or mouse click dismisses the instructions.
 	if showing_instructions and (event is InputEventKey or event is InputEventMouseButton) and event.pressed:
-		showing_instructions = false
-		instructions_view.visible = false
+		_dismiss_instructions()
 		return
 
 	# DESIGN.md §17: F1/F2 debug keys. Work in flight and while docked, but
@@ -275,8 +283,7 @@ func _handle_screen_tap(pos: Vector2) -> void:
 	# select it, tap it again to buy; LAUNCH to leave). In-flight touches
 	# belong to render/touch_controls_view.gd.
 	if showing_instructions:
-		showing_instructions = false
-		instructions_view.visible = false
+		_dismiss_instructions()
 	elif game_over:
 		if Time.get_ticks_msec() - game_over_at_msec >= GAME_OVER_TAP_DELAY_MSEC:
 			_restart_game()
@@ -291,6 +298,15 @@ func _handle_screen_tap(pos: Vector2) -> void:
 			_buy_selected_tile()
 		else:
 			shop_selection = i
+
+func _dismiss_instructions() -> void:
+	# Leaving the start screen plays the opening shot: the whole system,
+	# then a glide in to the ship (render/camera_control.gd). The sim stays
+	# frozen until it ends (_physics_process).
+	showing_instructions = false
+	instructions_view.visible = false
+	var cam: CameraControl = $Ship/Camera2D as CameraControl
+	cam.start_intro(star.position - ship.position)
 
 func _debug_reveal_all() -> void:
 	# F1: marks every edge of every asteroid in the system as scanned.
@@ -308,6 +324,11 @@ func _debug_top_up() -> void:
 
 func _physics_process(delta: float) -> void:
 	if showing_instructions:
+		return
+
+	var intro_cam: CameraControl = $Ship/Camera2D as CameraControl
+	if intro_cam.intro_active():
+		intro_cam.step_intro(delta)  # opening shot: everything holds still meanwhile
 		return
 
 	if game_over:
@@ -561,6 +582,10 @@ func _handle_docked_input() -> void:
 		$StationShop.visible = false
 		hud_view.visible = true
 		place_ship_in_launch_orbit()
+		if intro_pending:
+			# First launch into a freshly built system: show it off first.
+			intro_pending = false
+			($Ship/Camera2D as CameraControl).start_intro(star.position - ship.position)
 	tab_key_was_down = tab_down
 
 	# DESIGN.md §13.4: arrows move the selection, Enter buys.
@@ -651,6 +676,7 @@ func _jump_to_level(next_level: int) -> void:
 
 	_build_level(next_level)
 	setup_asteroids()
+	intro_pending = true  # new system: opening shot on launch
 
 	docked_station = stations[0]
 	ship.position = docked_station.position
@@ -876,6 +902,7 @@ func _restart_game() -> void:
 	last_mined.clear()
 
 	setup_asteroids()
+	intro_pending = true  # new system: opening shot on launch
 
 	docked_station = stations[0]
 	ship.position = docked_station.position

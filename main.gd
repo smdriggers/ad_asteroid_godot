@@ -26,6 +26,12 @@ var world_time: float = 0.0
 var gravity_bodies: Array = []
 var fatal_bodies: Array = []
 var trajectory_result: Trajectory.Result = null
+var show_trajectory: bool = true  # toggled by T or the PATH button; off also skips the simulation
+
+func toggle_trajectory() -> void:
+	show_trajectory = not show_trajectory
+	if not show_trajectory:
+		trajectory_result = null
 var asteroid_views: Array = []  # Array of {"view": Node2D, "orbit": OrbitBody}
 
 var bolt_laser: BoltLaser = BoltLaser.new()
@@ -128,6 +134,13 @@ func _ready() -> void:
 	zoom_bar.set_anchors_preset(Control.PRESET_FULL_RECT)
 	zoom_bar.main = self
 	$Touch.add_child(zoom_bar)
+
+	# PATH toggle button: added last so it gets input before the rest.
+	var path_toggle := Control.new()
+	path_toggle.set_script(load("res://render/trajectory_toggle_view.gd"))
+	path_toggle.set_anchors_preset(Control.PRESET_FULL_RECT)
+	path_toggle.main = self
+	$Touch.add_child(path_toggle)
 	$StationShop.visible = false
 	$GameOver.visible = false
 	puff_rng.randomize()
@@ -223,6 +236,12 @@ func _build_level(lvl: int) -> void:
 func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch and event.pressed:
 		_handle_screen_tap(event.position)
+		return
+
+	# T toggles the trajectory preview in flight.
+	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_T \
+			and not showing_instructions and not game_over and not docked:
+		toggle_trajectory()
 		return
 
 	# Desktop tractor beam: hold right mouse on loose ore (left click fires).
@@ -359,7 +378,8 @@ func _physics_process(delta: float) -> void:
 	thrust_puffs.append_array(strafe_puffs.puffs)
 	puff_carry_strafe = strafe_puffs.carry
 
-	trajectory_result = Trajectory.simulate(ship.position, ship.velocity, world_time, gravity_bodies)
+	if show_trajectory:
+		trajectory_result = Trajectory.simulate(ship.position, ship.velocity, world_time, gravity_bodies)
 
 	# G toggles mine/scan mode — DESIGN.md §11.1. Edge-detected so holding
 	# it doesn't flip the mode every frame.

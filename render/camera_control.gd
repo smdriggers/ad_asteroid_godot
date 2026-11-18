@@ -1,16 +1,12 @@
 extends Camera2D
 class_name CameraControl
-# render/camera_control.gd — auto-zoom by proximity, plus a mouse-wheel
-# nudge on top (DESIGN.md §6).
+# render/camera_control.gd — manual zoom (DESIGN.md §6). The player sets
+# it with the zoom bar on the right edge (render/zoom_bar_view.gd); the
+# mouse wheel nudges it.
 #
 # `zoom_scale` follows DESIGN.md's own convention: bigger = more
-# magnified/zoomed in, smaller = more zoomed out (hence ZOOM_MIN being
+# magnified/zoomed in, smaller = more zoomed out (hence zoom_min being
 # the "whole system roughly in view" end).
-#
-# Auto-zoom: main.gd calls step_auto() every physics tick with the
-# distance from the ship to the nearest body's surface; the camera eases
-# (in log space, so zooming feels even at every scale) toward a zoom that
-# frames that gap. The wheel scales `zoom_bias`, multiplied on top.
 #
 # NOTE: the official Camera2D docs describe `zoom` as "bigger value shows
 # more area" (i.e. the opposite of our convention), which is why this used
@@ -26,8 +22,6 @@ class_name CameraControl
 
 var zoom_scale: float = Config.ZOOM_DEFAULT
 var zoom_min: float = 0.1  # DESIGN.md §3.4: per level ("whole system roughly in view"); set from main.gd when the system is (re)built
-var auto_zoom: float = Config.ZOOM_DEFAULT  # smoothed auto-zoom, before zoom_bias
-var zoom_bias: float = 1.0                  # mouse-wheel multiplier on top of auto_zoom
 
 func _ready() -> void:
 	_apply()
@@ -35,26 +29,12 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			zoom_bias = clamp(zoom_bias * Config.ZOOM_SPEED, Config.ZOOM_BIAS_MIN, Config.ZOOM_BIAS_MAX)
-			_recompute()
+			set_zoom_scale(zoom_scale * Config.ZOOM_SPEED)
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			zoom_bias = clamp(zoom_bias / Config.ZOOM_SPEED, Config.ZOOM_BIAS_MIN, Config.ZOOM_BIAS_MAX)
-			_recompute()
+			set_zoom_scale(zoom_scale / Config.ZOOM_SPEED)
 
-func target_zoom(surface_dist: float) -> float:
-	var view: Vector2 = get_viewport_rect().size
-	var half_min: float = min(view.x, view.y) * 0.5
-	var gap: float = max(surface_dist, 0.0) + Config.AUTO_ZOOM_PADDING
-	return clamp(Config.AUTO_ZOOM_VIEW_FRACTION * half_min / gap, zoom_min, Config.AUTO_ZOOM_MAX)
-
-func step_auto(delta: float, surface_dist: float) -> void:
-	var target: float = target_zoom(surface_dist)
-	var t: float = 1.0 - exp(-Config.AUTO_ZOOM_RATE * delta)
-	auto_zoom = exp(lerp(log(max(auto_zoom, 0.0001)), log(target), t))
-	_recompute()
-
-func _recompute() -> void:
-	zoom_scale = clamp(auto_zoom * zoom_bias, zoom_min, Config.ZOOM_MAX)
+func set_zoom_scale(z: float) -> void:
+	zoom_scale = clamp(z, zoom_min, Config.ZOOM_MAX)
 	_apply()
 
 func _apply() -> void:

@@ -1,7 +1,7 @@
 extends Control
 # render/touch_controls_view.gd — on-screen controls for phones/tablets:
 # a floating joystick on the left half, three arcade buttons on the right
-# (BLAST, BOMB, SCAN). Zoom is automatic (render/camera_control.gd). Writes its state into
+# (BLAST, BOMB, SCAN). Zoom has its own bar (render/zoom_bar_view.gd). Writes its state into
 # PlayerInput's static touch_* vars every event; main.gd reads them there.
 # Only shown in flight on a touch device; desktop play is untouched.
 

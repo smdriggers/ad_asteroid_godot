@@ -78,10 +78,6 @@ var tractor_grab_timer: float = 0.0
 var credits: int = 0
 var credits_earned: int = 0
 
-# Auto-zoom's distance input, rate-limited so it only grows about as fast
-# as the ship could fly it — when the nearest body vanishes (asteroid
-# destroyed), the camera drifts out instead of jumping. -1 = reset.
-var zoom_dist: float = -1.0
 
 var docked: bool = false
 var docked_station: OrbitBody = null  # which station the ship is docked/launching from — DESIGN.md §12.1-12.2
@@ -116,6 +112,14 @@ func _ready() -> void:
 	hud_view.main = self
 	game_over_view.main = self
 	$Touch/TouchControlsView.main = self
+
+	# Zoom bar: added after TouchControlsView so it gets input first and
+	# can swallow presses on the bar (see render/zoom_bar_view.gd).
+	var zoom_bar := Control.new()
+	zoom_bar.set_script(load("res://render/zoom_bar_view.gd"))
+	zoom_bar.set_anchors_preset(Control.PRESET_FULL_RECT)
+	zoom_bar.main = self
+	$Touch.add_child(zoom_bar)
 	$StationShop.visible = false
 	$GameOver.visible = false
 	puff_rng.randomize()
@@ -159,8 +163,7 @@ func _build_level(lvl: int) -> void:
 
 	var cam: CameraControl = $Ship/Camera2D as CameraControl
 	cam.zoom_min = level_data.zoom_min
-	cam.auto_zoom = clamp(cam.auto_zoom, cam.zoom_min, Config.AUTO_ZOOM_MAX)
-	cam._recompute()
+	cam.set_zoom_scale(cam.zoom_scale)  # re-clamp to the new level's range
 
 	$Star/StarView.outline_color = Config.STAR_COLOR
 	$Star/StarView.camera = cam
@@ -323,14 +326,7 @@ func _physics_process(delta: float) -> void:
 
 	ship.apply_turn(delta, turn_input, precision)
 
-	var cam: CameraControl = $Ship/Camera2D as CameraControl
-	var raw_dist: float = _nearest_surface_distance()
-	if zoom_dist < 0.0 or raw_dist <= zoom_dist:
-		zoom_dist = raw_dist
-	else:
-		zoom_dist = min(raw_dist, zoom_dist + (ship.velocity.length() + Config.AUTO_ZOOM_DIST_SLACK) * delta)
-	cam.step_auto(delta, zoom_dist)
-	var zoom_scale: float = cam.zoom_scale
+	var zoom_scale: float = ($Ship/Camera2D as CameraControl).zoom_scale
 	var gravity_accel: Vector2 = Gravity.acceleration(ship.position, gravity_bodies)
 	var thrust_accel: Vector2 = ship.thrust_accel_vector(local_thrust, precision, zoom_scale)
 	var prev_pos: Vector2 = ship.position
@@ -428,19 +424,6 @@ func _physics_process(delta: float) -> void:
 	_check_docking()
 	_step_competitors(delta, asteroid_entries)
 	_step_ore_count(delta)
-
-func _nearest_surface_distance() -> float:
-	# Auto-zoom input: gap from the ship to the closest body's surface —
-	# star, planets, stations, and asteroids (by their bounding radius).
-	var best: float = INF
-	for b in [star] + planets + stations:
-		best = min(best, ship.position.distance_to(b.position) - b.body_radius)
-	for entry in asteroid_views:
-		var graph: AsteroidGraph = entry.view.graph
-		if graph.nodes.is_empty():
-			continue
-		best = min(best, ship.position.distance_to(entry.view.position) - graph.bounding_radius)
-	return max(best, 0.0)
 
 func _step_ore_count(delta: float) -> void:
 	# DESIGN.md §15.2: recounted every ORE_HUD_UPDATE_INTERVAL seconds

@@ -37,7 +37,10 @@ static func precision() -> bool:
 static func firing() -> bool:
 	# DESIGN.md §9, §11.1: "Left mouse or Space — The trigger." What it
 	# does (fire or scan) depends on the current mode, tracked in main.gd.
-	return Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or Input.is_physical_key_pressed(KEY_SPACE)
+	var mouse: bool = Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and not mouse_on_ui
+	return mouse or Input.is_physical_key_pressed(KEY_SPACE)
+
+static var mouse_on_ui: bool = false  # left button is dragging an on-screen control (the zoom bar), not firing
 
 static func scan_key_down() -> bool:
 	# Raw key state; main.gd edge-detects this itself to toggle mode on

@@ -102,6 +102,7 @@ const GAME_OVER_TOP: float = 140.0   # px down to the first line of the game-ove
 
 # --- Asteroids ---
 const HEX_NODE_RADIUS: float = 12.0                    # px; hex cell size — DESIGN.md §7.1
+const ASTEROID_CORE_COLLAPSE: bool = false  # true = original rule: mining out the center node crumbles the whole rock. false = the largest remaining piece holds together instead
 const UNSCANNED_EDGE_COLOR: Color = Color(0.5, 0.5, 0.5)  # grey, before scanning — DESIGN.md §16.2
 const DAMAGED_EDGE_BRIGHTEN: float = 0.35   # damaged nodes' edges blend this far toward white — §16.2
 const NEAR_DEATH_HP_FRACTION: float = 0.25  # below this share of HP a node's edges pulse — §16.2

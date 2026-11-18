@@ -88,8 +88,9 @@ func is_thin(key: String) -> bool:
 
 func settle() -> Array:
 	# Removes every thin edge and every node no longer connected to the
-	# center, repeating until stable, since crumbling can create new thin
-	# edges — DESIGN.md §7.3. Returns the removed nodes.
+	# rock's main piece (see _anchor_piece), repeating until stable, since
+	# crumbling can create new thin edges — DESIGN.md §7.3. Returns the
+	# removed nodes.
 	var removed: Array = []
 	while true:
 		var thin: Array = []
@@ -99,10 +100,7 @@ func settle() -> Array:
 		for key in thin:
 			edges.erase(key)
 
-		var center_alive: bool = nodes.has(CENTER) and _has_any_edge(CENTER)
-		var kept: Dictionary = {}
-		if center_alive:
-			kept = _reachable(CENTER)
+		var kept: Dictionary = _anchor_piece()
 		var lost: Array = []
 		for node in nodes.keys():
 			if not kept.has(node):
@@ -225,6 +223,29 @@ func _has_any_edge(node: Vector2i) -> bool:
 		if edges.has(edge_key(node, node + dir)):
 			return true
 	return false
+
+func _anchor_piece() -> Dictionary:
+	# The nodes that stay put; everything else crumbles. With
+	# Config.ASTEROID_CORE_COLLAPSE on (the original rule) that's whatever
+	# is still joined to the center node, so mining out the core destroys
+	# the whole rock. Off (the default), it's the largest joined piece
+	# (the center's piece wins a tie), so a rock survives losing its core
+	# and only fragments smaller than the main body break away.
+	if Config.ASTEROID_CORE_COLLAPSE:
+		if nodes.has(CENTER) and _has_any_edge(CENTER):
+			return _reachable(CENTER)
+		return {}
+	var best: Dictionary = {}
+	var seen: Dictionary = {}
+	for node in nodes.keys():
+		if seen.has(node) or not _has_any_edge(node):
+			continue  # nodes with no edges left can't be drawn or hit: they crumble
+		var piece: Dictionary = _reachable(node)
+		for n in piece.keys():
+			seen[n] = true
+		if piece.size() > best.size() or (piece.size() == best.size() and piece.has(CENTER)):
+			best = piece
+	return best
 
 func _reachable(start: Vector2i) -> Dictionary:
 	var seen: Dictionary = {start: true}

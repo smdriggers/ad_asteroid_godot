@@ -113,6 +113,14 @@ func _ready() -> void:
 	game_over_view.main = self
 	$Touch/TouchControlsView.main = self
 
+	# Parallax starfield, in its own canvas layer behind the world.
+	var star_layer := CanvasLayer.new()
+	star_layer.layer = -1
+	var starfield := Node2D.new()
+	starfield.set_script(load("res://render/starfield_view.gd"))
+	star_layer.add_child(starfield)
+	add_child(star_layer)
+
 	# Zoom bar: added after TouchControlsView so it gets input first and
 	# can swallow presses on the bar (see render/zoom_bar_view.gd).
 	var zoom_bar := Control.new()

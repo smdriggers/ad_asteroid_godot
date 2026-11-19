@@ -4,7 +4,7 @@ extends Node
 # Placeholder values throughout; tune by playing (per CLAUDE.md).
 
 # --- Simulation ---
-const G: float = 500.0             # gravitational constant. TEST: 10x the pygame value (50) to try GM x10 — revert to 50.0 to undo
+const G: float = 50.0              # gravitational constant — ported from pygame config.py
 const SOFTENING: float = 50.0      # px; prevents blow-ups at close range — ported from pygame config.py
 const SIM_DT: float = 1.0 / 60.0   # fixed sim step; must match Project Settings -> Physics -> Common -> Physics Ticks Per Second
 
@@ -19,7 +19,7 @@ const TRAJECTORY_X_SIZE: float = 8.0         # px; half-width of the crash X
 const SHIP_RADIUS: float = 6.0                  # px; draw/collision radius — ported from pygame config.py
 const SHIP_COLOR: Color = Color(0.2, 1.0, 0.6)  # placeholder neon color
 const TURN_RATE: float = 3.0                    # radians/sec while Q/E held — DESIGN.md §4.1
-const THRUST_ACCEL: float = 125.0               # px/sec^2 — raised from pygame's 60 (100, then x1.25)
+const THRUST_ACCEL: float = 100.0               # px/sec^2 — raised from pygame's 60
 const PRECISION_FACTOR: float = 0.5             # Shift multiplier on turn rate and thrust — DESIGN.md §4.2
 
 # --- Camera / zoom (DESIGN.md §6) ---

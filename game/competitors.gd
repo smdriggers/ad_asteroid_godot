@@ -491,30 +491,28 @@ static func update(comp: Competitor, ctx: Dictionary, dt: float) -> bool:
 	return false
 
 static func _mine(comp: Competitor, target: Dictionary, dt: float, ctx: Dictionary) -> void:
-	# Laser hits at the group's mine rate on the target edge's owner
-	# node, with effective_damage at the competitor's laser tier. No
-	# bolts: the damage lands directly — DESIGN.md §14.5.
+	# Fires real laser bolts at the target edge, at the group's mine rate —
+	# the same bolts as the player's (game/projectiles.gd), so they fly,
+	# throw sparks and can clip other rocks. main.gd steps comp.bolts at
+	# this competitor's laser tier and drops the ore they cut as loose ore.
 	comp.mine_timer += dt
 	var interval: float = 1.0 / comp.group.mine_rate()
-	var rock = comp.target
-	var graph: AsteroidGraph = rock.view.graph
-	while comp.mine_timer >= interval:
-		comp.mine_timer -= interval
-		if target.dist > Config.COMP_MINE_RANGE:
-			continue  # drifted out of range; keep closing in
-		if not graph.edges.has(target.edge):
-			break  # already cut this tick
-		var n: Array = AsteroidGraph.edge_nodes(target.edge)
-		var owner: Vector2i = graph.edge_owner.get(target.edge, n[0])
-		var mat: int = graph.node_material.get(owner, Materials.IRON)
-		var damage: float = Projectiles.effective_damage(Config.BOLT_DAMAGE, Materials.hardness(mat), comp.laser_tier())
-		var ore: Array = Projectiles.apply_damage_to_edge(graph, rock.view, target.edge, damage, comp.laser_tier())
-		if not ore.is_empty():
-			ctx.last_mined[rock.view] = ctx.world_time
-			for item in ore:
-				item["dropper"] = comp  # their own drops aren't subject to the steal delay
-				ctx.drop_ore.call(item)  # floats loose like the player's; _tractor() pulls it in
-			break
+	if comp.mine_timer < interval:
+		return
+	comp.mine_timer = minf(comp.mine_timer - interval, interval)  # don't bank shots while out of range
+	if target.dist > Config.COMP_MINE_RANGE:
+		return  # drifted out of range; keep closing in
+	var to_edge: Vector2 = target.mid - comp.position
+	if to_edge.length() < 0.001:
+		return
+	var dir: Vector2 = to_edge.normalized()
+	comp.heading = atan2(dir.x, -dir.y)  # face the shot
+	comp.bolts.append({
+		"position": comp.position,
+		"velocity": dir * Config.BOLT_SPEED + comp.velocity,
+		"damage": Config.BOLT_DAMAGE,
+		"life": (Config.COMP_MINE_RANGE + Config.COMP_BOLT_RANGE_SLACK) / Config.BOLT_SPEED,
+	})
 
 static func _tractor(comp: Competitor, ctx: Dictionary, dt: float) -> void:
 	# Every COMP_TRACTOR_INTERVAL, grab the nearest loose ore within

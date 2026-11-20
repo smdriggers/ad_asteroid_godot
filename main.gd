@@ -517,6 +517,7 @@ func _step_competitors(delta: float, asteroid_entries: Array) -> void:
 	var ctx: Dictionary = _build_comp_ctx(asteroid_entries)
 	for comp in competitors:
 		var crashed: bool = CompAI.update(comp, ctx, delta)
+		_step_comp_bolts(comp, delta, asteroid_entries)
 		if crashed:
 			_release_loose_ore(comp)
 			CompAI.respawn(comp, ctx)
@@ -525,6 +526,21 @@ func _step_competitors(delta: float, asteroid_entries: Array) -> void:
 			# target; head home anyway — DESIGN.md §14.3 (world.py's
 			# equivalent post-update check).
 			comp.state = Competitor.RETURNING
+
+func _step_comp_bolts(comp: Competitor, delta: float, asteroid_entries: Array) -> void:
+	# A competitor's laser bolts work exactly like the player's, at its own
+	# laser tier: same flight, sparks and hardness penalty. What they cut
+	# drops as loose ore marked as theirs (no steal delay for them).
+	if comp.bolts.is_empty():
+		return
+	var result: Dictionary = Projectiles.step_bolts(comp.bolts, delta, asteroid_entries, comp.laser_tier())
+	for s in result.sparks:
+		s["age"] = 0.0
+		sparks.append(s)
+	for ore in result.ore:
+		last_mined[ore.view] = world_time  # DESIGN.md §14.2: Scavengers watch for this
+		ore["dropper"] = comp
+		drop_loose_ore(ore)
 
 func _build_comp_ctx(asteroid_entries: Array) -> Dictionary:
 	return {

@@ -65,8 +65,8 @@ static func generate_system(level: int, rng: RandomNumberGenerator) -> Array:
 	for mat_id in Config.ORE_BUDGET.keys():
 		budget[mat_id] = int(Config.ORE_BUDGET[mat_id] * total_nodes)
 
-	var results: Array = []
-
+	# Fill and finish every rock first; placement needs final sizes.
+	var to_place: Array = []  # {"graph","size_class","profile","belt"}; nuggets first so they always get a spot
 	for entry in nuggets:
 		var mat_id: int = _pick_nugget_material(budget, rng)
 		var graph: AsteroidGraph = entry["graph"]
@@ -74,25 +74,136 @@ static func generate_system(level: int, rng: RandomNumberGenerator) -> Array:
 			graph.node_material[node] = mat_id
 		_charge_budget(graph, budget)
 		_finish_rock(graph)
-		results.append(_place_in_belt(graph, entry["size_class"], "nugget", nugget_belt, rng))
+		to_place.append({"graph": graph, "size_class": entry["size_class"], "profile": "nugget", "belt": nugget_belt})
 
+	var others: Array = []
 	for entry in rocks_raw:
 		var graph: AsteroidGraph = entry["graph"]
 		_fill_profile(graph, entry["profile"], rng)
 		_charge_budget(graph, budget)
 		_finish_rock(graph)
-		results.append(_place_in_belt(graph, entry["size_class"], entry["profile"], entry["belt"], rng))
+		others.append({"graph": graph, "size_class": entry["size_class"], "profile": entry["profile"], "belt": entry["belt"]})
+	# Biggest first packs the lanes better; small rocks fill the gaps after.
+	others.sort_custom(func(a, b): return a.graph.bounding_radius > b.graph.bounding_radius)
+	to_place.append_array(others)
 
+	return _place_all(to_place, belts, rng)
+
+# --- Placement: spaced orbital lanes ---
+#
+# Rocks orbit the star at speeds set by their distance, so two rocks at
+# different distances drift past each other and will meet eventually
+# unless their orbits are farther apart than their combined size. Rocks
+# at exactly the same distance move in lockstep and keep their spacing
+# forever. So every belt is built from lanes (shared orbit radii): a rock
+# either joins a lane, spaced along it from its neighbours, or starts a
+# new lane far enough from every other lane's rocks that they can never
+# touch. A rock with no room anywhere in its belt is left out.
+
+static func _place_all(to_place: Array, belts: Array, rng: RandomNumberGenerator) -> Array:
+	var gap: float = Config.ASTEROID_SPACING
+	var lanes_by_belt: Dictionary = {}   # belt index -> Array of {"r","max_b","rocks": Array of {"phase","b"}}
+	var asked: Dictionary = {}           # belt index -> rocks wanted
+	var got: Dictionary = {}             # belt index -> rocks placed
+	var results: Array = []
+
+	for item in to_place:
+		var bi: int = 0
+		for k in range(belts.size()):
+			if is_same(belts[k], item.belt):
+				bi = k
+				break
+		asked[bi] = asked.get(bi, 0) + 1
+		if not lanes_by_belt.has(bi):
+			lanes_by_belt[bi] = []
+		var lanes: Array = lanes_by_belt[bi]
+		var b: float = item.graph.bounding_radius
+		var spot = _find_spot(lanes, item.belt, b, gap, rng)
+		if spot == null:
+			continue
+		if spot.lane < 0:
+			lanes.append({"r": spot.r, "max_b": b, "rocks": [{"phase": spot.phase, "b": b}]})
+		else:
+			var lane: Dictionary = lanes[spot.lane]
+			lane.rocks.append({"phase": spot.phase, "b": b})
+			lane.max_b = maxf(lane.max_b, b)
+		got[bi] = got.get(bi, 0) + 1
+
+		var result := RockResult.new()
+		result.graph = item.graph
+		result.size_class = item.size_class
+		result.profile = item.profile
+		result.orbit_radius = spot.r
+		result.phase = spot.phase
+		results.append(result)
+
+	for bi in asked.keys():
+		var belt: Dictionary = belts[bi]
+		if got.get(bi, 0) < asked[bi]:
+			print("Belt %d-%d (%s): room for %d of %d rocks without overlaps" % [belt.inner, belt.outer, belt.kind, got.get(bi, 0), asked[bi]])
 	return results
 
-static func _place_in_belt(graph: AsteroidGraph, size_class: String, profile: String, belt: Dictionary, rng: RandomNumberGenerator) -> RockResult:
-	var result := RockResult.new()
-	result.graph = graph
-	result.size_class = size_class
-	result.profile = profile
-	result.orbit_radius = rng.randf_range(belt.inner, belt.outer)
-	result.phase = rng.randf_range(0.0, TAU)
-	return result
+static func _find_spot(lanes: Array, belt: Dictionary, b: float, gap: float, rng: RandomNumberGenerator):
+	# {"r","phase","lane"} (lane = index into lanes, -1 = start a new one), or null if none fits.
+	# 1) Join an existing lane: try just past each rock already on it.
+	var order: Array = range(lanes.size())
+	for i in range(order.size() - 1, 0, -1):  # shuffle with the seeded rng so a pinned SYSTEM_SEED stays reproducible
+		var j: int = rng.randi_range(0, i)
+		var tmp = order[i]
+		order[i] = order[j]
+		order[j] = tmp
+	for li in order:
+		var lane: Dictionary = lanes[li]
+		for rock in lane.rocks:
+			var step: float = _arc_angle(lane.r, rock.b + b + gap)
+			if step < 0.0:
+				continue
+			var phase: float = wrapf(rock.phase + step, 0.0, TAU)
+			if _fits(lanes, lane.r, phase, b, gap, li):
+				return {"r": lane.r, "phase": phase, "lane": li}
+
+	# 2) Start a new lane: as tight against an existing lane as allowed,
+	# or at the belt's edges, or anywhere at random; pick among the valid.
+	var radii: Array = [belt.inner, belt.outer]
+	for lane in lanes:
+		radii.append(lane.r - (lane.max_b + b + gap))
+		radii.append(lane.r + (lane.max_b + b + gap))
+	for i in range(Config.ASTEROID_PLACEMENT_TRIES):
+		radii.append(rng.randf_range(belt.inner, belt.outer))
+	var valid: Array = []
+	for r in radii:
+		if r < belt.inner or r > belt.outer:
+			continue
+		if _fits(lanes, r, 0.0, b, gap, -1):
+			valid.append(r)
+	if valid.is_empty():
+		return null
+	return {"r": valid[rng.randi() % valid.size()], "phase": rng.randf_range(0.0, TAU), "lane": -1}
+
+static func _fits(lanes: Array, r: float, phase: float, b: float, gap: float, own_lane: int) -> bool:
+	# Whether a rock of bounding radius b at (r, phase) can never touch any
+	# placed rock. own_lane: index of the lane it would join (same orbit), or -1.
+	for li in range(lanes.size()):
+		var lane: Dictionary = lanes[li]
+		if li == own_lane:
+			for rock in lane.rocks:
+				var need: float = rock.b + b + gap
+				var d: float = absf(wrapf(phase - rock.phase, -PI, PI))
+				if 2.0 * r * sin(d / 2.0) < need:  # chord between the two centres
+					return false
+		else:
+			if absf(r - lane.r) >= lane.max_b + b + gap:
+				continue  # the whole lane is clear
+			for rock in lane.rocks:
+				if absf(r - lane.r) < rock.b + b + gap:
+					return false  # different orbits this close meet eventually
+	return true
+
+static func _arc_angle(r: float, chord: float) -> float:
+	# Angle along an orbit of radius r that spans `chord`; -1 if it can't.
+	if r <= 0.0 or chord >= 2.0 * r:
+		return -1.0
+	return 2.0 * asin(chord / (2.0 * r))
 
 static func _weighted_pick(weights: Dictionary, rng: RandomNumberGenerator):
 	var total: float = 0.0

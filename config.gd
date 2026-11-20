@@ -121,10 +121,16 @@ const NEAR_DEATH_PULSE_HZ: float = 4.0      # pulses/sec for a nearly destroyed 
 # every level to that seed, e.g. 1 to match the pygame project. The seed
 # used is printed to the console.
 const SYSTEM_SEED: int = -1
-# Empty space every belt keeps from each planet's gravity range. Documents
-# how LEVELS was laid out (levels 2-3 satisfy it); not enforced at
-# generation, so level 1's 1400 inner edge still touches its planet's range.
+# Empty space belts keep from each planet's gravity range, as pygame laid
+# them out. Documentation only, not enforced: level 1's 1400 inner edge
+# touches its planet's range, and level 2's first two belts were widened
+# down to 150 of clearance to fit their doubled rock counts.
 const BELT_CLEARANCE: float = 300.0
+# Asteroid spacing (game/system_gen.gd _place_all): rocks sit in orbital
+# lanes so they can never drift into each other. A rock that finds no
+# room in its belt is left out (the console says how many fit).
+const ASTEROID_SPACING: float = 20.0       # world px of clear space kept between rocks' outer edges
+const ASTEROID_PLACEMENT_TRIES: int = 12   # random radii tried per rock when starting a new lane
 
 # --- Levels (DESIGN.md §3.4) ---
 # Each level is its own solar system, all at the same scale. main.gd reads
@@ -141,7 +147,7 @@ const LEVELS: Dictionary = {
 		"zoom_min": 0.1,                 # ported from pygame config.py
 		"comp_max": 5,                   # ported from pygame config.py (COMP_MAX_S1)
 		"planets": [{"orbit_radius": 1000.0, "phase": 0.0}],
-		"belts": [{"inner": 1400.0, "outer": 2200.0, "count": 20, "kind": "mixed"}],  # ported from pygame config.py
+		"belts": [{"inner": 1400.0, "outer": 2200.0, "count": 40, "kind": "mixed"}],  # pygame: 20; doubled for ~2x total nodes
 	},
 	2: {
 		# Three planets spread round the star, each with a station; three
@@ -156,9 +162,13 @@ const LEVELS: Dictionary = {
 			{"orbit_radius": 4200.0, "phase": 240.0},
 		],
 		"belts": [
-			{"inner": 1700.0, "outer": 1900.0, "count": 45, "kind": "iron"},
-			{"inner": 3300.0, "outer": 3500.0, "count": 60, "kind": "mixed"},
-			{"inner": 4900.0, "outer": 5300.0, "count": 90, "kind": "rich"},
+			# Counts doubled from pygame's 45 / 60 / 90 for ~2x total nodes.
+			# The first two are widened from pygame's 1700-1900 / 3300-3500 so
+			# the doubled counts fit without overlapping, which cuts their gap
+			# to the planets' gravity range from 300 to 150.
+			{"inner": 1550.0, "outer": 2050.0, "count": 90, "kind": "iron"},
+			{"inner": 3150.0, "outer": 3650.0, "count": 120, "kind": "mixed"},
+			{"inner": 4900.0, "outer": 5300.0, "count": 180, "kind": "rich"},
 		],
 	},
 	3: {
@@ -171,8 +181,12 @@ const LEVELS: Dictionary = {
 		"comp_max": 10,
 		"planets": [{"orbit_radius": 1500.0, "phase": 0.0}],
 		"belts": [
-			{"inner": 150.0, "outer": 200.0, "count": 40, "kind": "vein_pebbles"},
-			{"inner": 2900.0, "outer": 3100.0, "count": 30, "kind": "iron"},
+			# Counts doubled from pygame's 40 / 30 for ~2x total nodes. The
+			# inner belt is widened from pygame's 150-200 (room for only ~8
+			# rocks without overlaps) to 150-750, still well inside the
+			# planet's range less clearance (800).
+			{"inner": 150.0, "outer": 750.0, "count": 80, "kind": "vein_pebbles"},
+			{"inner": 2900.0, "outer": 3100.0, "count": 60, "kind": "iron"},
 		],
 	},
 }

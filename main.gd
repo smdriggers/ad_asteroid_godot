@@ -123,6 +123,19 @@ func _ready() -> void:
 	game_over_view.main = self
 	$Touch/TouchControlsView.main = self
 
+	# DEBUG menu on every screen: its own top layer, added after everything
+	# else so it gets input first (render/debug_menu_view.gd).
+	DebugFlags.show_speed = Config.DEBUG_SHOW_SPEED
+	DebugFlags.show_perf = Config.DEBUG_SHOW_PERF
+	var debug_layer := CanvasLayer.new()
+	debug_layer.layer = 50
+	var debug_menu := Control.new()
+	debug_menu.set_script(load("res://render/debug_menu_view.gd"))
+	debug_menu.set_anchors_preset(Control.PRESET_FULL_RECT)
+	debug_menu.main = self
+	debug_layer.add_child(debug_menu)
+	add_child.call_deferred(debug_layer)  # deferred: lands after the nodes added below, so it's last in the tree
+
 	# Parallax starfield, in its own canvas layer behind the world.
 	var star_layer := CanvasLayer.new()
 	star_layer.layer = -1
@@ -274,10 +287,9 @@ func _input(event: InputEvent) -> void:
 	if Config.DEBUG_KEYS_ENABLED and not showing_instructions and not game_over \
 			and event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_F1:
-			_debug_reveal_all()
+			debug_reveal_all()
 		elif event.keycode == KEY_F2:
-			unlimited_credits = not unlimited_credits
-			_debug_top_up()
+			toggle_unlimited_credits()
 
 func _handle_screen_tap(pos: Vector2) -> void:
 	# Touch equivalents of the menu keys: tap dismisses the instructions,
@@ -310,8 +322,13 @@ func _dismiss_instructions() -> void:
 	var cam: CameraControl = $Ship/Camera2D as CameraControl
 	cam.start_intro(star.position - ship.position)
 
-func _debug_reveal_all() -> void:
-	# F1: marks every edge of every asteroid in the system as scanned.
+func toggle_unlimited_credits() -> void:
+	# F2 or the DEBUG menu.
+	unlimited_credits = not unlimited_credits
+	_debug_top_up()
+
+func debug_reveal_all() -> void:
+	# F1 or the DEBUG menu: marks every edge of every asteroid in the system as scanned.
 	for entry in asteroid_views:
 		var graph: AsteroidGraph = entry.view.graph
 		for key in graph.edges.keys():

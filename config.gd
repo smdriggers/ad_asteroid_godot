@@ -391,7 +391,7 @@ const COMP_UPGRADES: Array[String] = ["laser_tier", "fire_rate", "cargo_capacity
 const COMP_COLOR: Color = Color(1.0, 0.4, 0.0)  # amber; all competitors share it
 
 # --- Debug keys (DESIGN.md §17) ---
-const DEBUG_KEYS_ENABLED: bool = true  # F1 reveals every asteroid edge; F2 toggles unlimited credits — ported from pygame config.py
-const DEBUG_SHOW_PERF: bool = true     # debug only, not for release: FPS, live object count, orphan nodes, draw calls (and memory where available) under the speed
-const DEBUG_SHOW_SPEED: bool = true   # debug only, not for release: ship speed (world px/sec) at the top centre of the HUD
+const DEBUG_KEYS_ENABLED: bool = true  # master debug switch: F1 reveals every asteroid edge, F2 toggles unlimited credits, and the on-screen DEBUG menu is shown — set false for release
+const DEBUG_SHOW_PERF: bool = true     # starting state (the DEBUG menu toggles it live): FPS, object count, orphan nodes, draw calls under the speed
+const DEBUG_SHOW_SPEED: bool = true    # starting state (the DEBUG menu toggles it live): ship speed (world px/sec) at the top centre of the HUD
 const DEBUG_CREDITS: int = 1_000_000  # what unlimited credits keeps you topped up to — ported from pygame config.py

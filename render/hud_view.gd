@@ -39,11 +39,11 @@ func _draw() -> void:
 	draw_string(font, Vector2(x, y), "ORE %d%%" % ore_pct, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Config.HUD_TEXT_COLOR)
 	y += line
 
-	if Config.DEBUG_SHOW_SPEED:
+	if DebugFlags.show_speed:
 		# Debug readout, not for release: the ship's speed in world px/sec.
 		_centered(font, "SPEED %.1f" % main.ship.velocity.length(), Config.HUD_TEXT_COLOR, size.x / 2.0, Config.HUD_MARGIN, font_size)
 
-	if Config.DEBUG_SHOW_PERF:
+	if DebugFlags.show_perf:
 		# Debug readout, not for release. Objects / orphans climbing steadily
 		# during play means a leak; memory reads 0 in release builds, where
 		# Godot doesn't track it.

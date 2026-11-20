@@ -338,6 +338,7 @@ const GLOW_TUBE_PX: float = 2.0       # colored tube is at least this many scree
 const GLOW_CORE_PX: float = 0.8       # hot core width, screen px
 const GLOW_CORE_WHITEN: float = 0.6   # how far the core is pushed toward white (0 = tube color, 1 = pure white)
 const GLOW_STAR_STRENGTH: float = 1.8 # the star's halo is this much wider
+const ON_SCREEN_MARGIN_PX: float = 24.0  # screen px beyond the view edge still counted as on screen (covers glow halos)
 const BG_COLOR: Color = Color(0, 0, 0)  # black background (also set as the project's default clear color)
 
 # Thrust puffs (DESIGN.md §16.3); ported from pygame config.py. Purely
@@ -389,5 +390,6 @@ const COMP_COLOR: Color = Color(1.0, 0.4, 0.0)  # amber; all competitors share i
 
 # --- Debug keys (DESIGN.md §17) ---
 const DEBUG_KEYS_ENABLED: bool = true  # F1 reveals every asteroid edge; F2 toggles unlimited credits — ported from pygame config.py
-const DEBUG_SHOW_SPEED: bool = true    # debug only, not for release: ship speed (world px/sec) at the top centre of the HUD
+const DEBUG_SHOW_PERF: bool = true     # debug only, not for release: FPS, live object count, orphan nodes, draw calls (and memory where available) under the speed
+const DEBUG_SHOW_SPEED: bool = true   # debug only, not for release: ship speed (world px/sec) at the top centre of the HUD
 const DEBUG_CREDITS: int = 1_000_000  # what unlimited credits keeps you topped up to — ported from pygame config.py

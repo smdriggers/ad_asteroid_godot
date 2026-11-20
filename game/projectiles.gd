@@ -165,6 +165,7 @@ static func apply_damage_to_owner(graph: AsteroidGraph, view: Node2D, owner: Vec
 	var mat: int = graph.node_material.get(owner, Materials.IRON)
 	var eff: float = effective_damage(damage, Materials.hardness(mat), laser_tier)
 	graph.node_hp[owner] = graph.node_hp.get(owner, Materials.hp(mat)) - eff
+	graph.version += 1  # damage changes edge colors (and a kill changes the outline): redraw
 	if graph.node_hp[owner] > 0.0:
 		return []
 

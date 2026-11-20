@@ -43,6 +43,21 @@ func _draw() -> void:
 		# Debug readout, not for release: the ship's speed in world px/sec.
 		_centered(font, "SPEED %.1f" % main.ship.velocity.length(), Config.HUD_TEXT_COLOR, size.x / 2.0, Config.HUD_MARGIN, font_size)
 
+	if Config.DEBUG_SHOW_PERF:
+		# Debug readout, not for release. Objects / orphans climbing steadily
+		# during play means a leak; memory reads 0 in release builds, where
+		# Godot doesn't track it.
+		var mem_mb: float = Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0
+		var perf: String = "FPS %d  |  objects %d  |  orphans %d  |  draw calls %d" % [
+			Performance.get_monitor(Performance.TIME_FPS),
+			Performance.get_monitor(Performance.OBJECT_COUNT),
+			Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT),
+			Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
+		]
+		if mem_mb > 0.0:
+			perf += "  |  mem %.0f MB" % mem_mb
+		_centered(font, perf, Config.HUD_TEXT_COLOR, size.x / 2.0, Config.HUD_MARGIN + Config.HUD_LINE_HEIGHT, 14)
+
 	if main.stripped_time != null and main.world_time - main.stripped_time < Config.STRIPPED_MESSAGE_TIME:
 		_centered(font, "THE SYSTEM IS STRIPPED", Config.STRIPPED_MESSAGE_COLOR, size.x / 2.0, size.y / 3.0, 22)
 

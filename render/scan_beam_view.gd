@@ -4,8 +4,15 @@ extends Node2D
 # (§11.3), which flash briefly without the trigger. Pure drawing; reads
 # the parent's (Main) scan_beam and pulse_beam/pulse_beam_timer.
 
+var _had_any: bool = false
+
 func _process(_delta: float) -> void:
-	queue_redraw()
+	# Animated while there's something to show; one last redraw clears it.
+	var main: Node2D = get_parent()
+	var has_any: bool = not main.scan_beam.is_empty() or main.pulse_beam_timer > 0.0
+	if has_any or _had_any:
+		queue_redraw()
+	_had_any = has_any
 
 func _draw() -> void:
 	var main: Node2D = get_parent()

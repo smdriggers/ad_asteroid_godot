@@ -9,9 +9,17 @@ const RING_SEGMENTS: int = 20
 
 var anim_time: float = 0.0
 
+var _had_any: bool = false
+
 func _process(delta: float) -> void:
 	anim_time += delta
-	queue_redraw()
+	# Ore positions and beams are worked out here each frame, so this stays
+	# animated while there's anything to show; one last redraw clears it.
+	var main: Node2D = get_parent()
+	var has_any: bool = not main.loose_ore.is_empty() or main.tractor_held
+	if has_any or _had_any:
+		queue_redraw()
+	_had_any = has_any
 
 func _draw() -> void:
 	var main: Node2D = get_parent()

@@ -24,6 +24,12 @@ var edge_owner: Dictionary = {}      # edge key -> owner Vector2i (DESIGN.md §7
 var revealed: Dictionary = {}        # edge key -> true; the player's own scans (DESIGN.md §11)
 var comp_revealed: Dictionary = {}   # edge key -> true; shared by all competitors (DESIGN.md §14.6)
 
+# Bumped whenever anything that changes how the rock is drawn changes
+# (damage, a node removed, a player scan revealing an edge), so
+# render/asteroid_view.gd only rebuilds its drawing when it has to.
+# Competitor scans (comp_revealed) aren't drawn, so they don't bump it.
+var version: int = 0
+
 # Nothing can reach further from the center than this. Set once at spawn
 # (compute_bounding_radius(), called from system_gen.gd) — rocks only ever
 # shrink, so it's never recomputed as nodes are removed — DESIGN.md §14.4.

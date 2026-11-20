@@ -95,8 +95,9 @@ func _cast_ray(p0: Vector2, dir: Vector2, scan_range: float, scan_depth: int, as
 	for i in range(min(scan_depth, hits.size())):
 		if for_competitors:
 			graph.comp_revealed[hits[i].key] = true
-		else:
+		elif not graph.revealed.has(hits[i].key):
 			graph.revealed[hits[i].key] = true
+			graph.version += 1  # newly revealed edge: the view must redraw
 		end_t = max(end_t, hits[i].t)
 
 	return p0 + dir * scan_range * end_t

@@ -314,6 +314,7 @@ func _debug_reveal_all() -> void:
 		var graph: AsteroidGraph = entry.view.graph
 		for key in graph.edges.keys():
 			graph.revealed[key] = true
+		graph.version += 1
 
 func _debug_top_up() -> void:
 	# F2: brings credits up to Config.DEBUG_CREDITS (never down) while
@@ -665,6 +666,7 @@ func _jump_to_level(next_level: int) -> void:
 
 	for entry in asteroid_views:
 		entry.view.queue_free()
+		entry.orbit.free()  # never added to the tree, so queue_free wouldn't reach it: free it directly
 	asteroid_views.clear()
 
 	for comp in competitors:
@@ -891,6 +893,7 @@ func _restart_game() -> void:
 
 	for entry in asteroid_views:
 		entry.view.queue_free()
+		entry.orbit.free()  # never added to the tree, so queue_free wouldn't reach it: free it directly
 	asteroid_views.clear()
 
 	for comp in competitors:

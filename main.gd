@@ -37,6 +37,7 @@ func toggle_trajectory() -> void:
 		trajectory_result = null
 var asteroid_views: Array = []  # Array of {"view": Node2D, "orbit": OrbitBody}
 var rock_entries: Array = []    # the same rocks as {"view","graph"}, for collisions/bolts/scans; built once per system
+var rock_grid: RockGrid = RockGrid.new()  # rocks by position, refreshed every tick (game/rock_grid.gd)
 
 var bolt_laser: BoltLaser = BoltLaser.new()
 var bolts: Array = []   # Array of {"position", "velocity", "damage", "life"}
@@ -382,6 +383,9 @@ func _physics_process(delta: float) -> void:
 		entry.view.world_time = world_time  # drives the near-death pulse — DESIGN.md §16.2
 
 	var asteroid_entries: Array = rock_entries  # built once per system in setup_asteroids()
+	# Re-file the rocks by position for this tick's bolts/scans/collisions.
+	rock_grid.rebuild(rock_entries)
+	RockGrid.current = rock_grid
 
 	var turn_input: float = PlayerInput.turn_input()
 	var local_thrust: Vector2 = PlayerInput.local_thrust()

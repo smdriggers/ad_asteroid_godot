@@ -36,6 +36,9 @@ func _scan_impl(ship_position: Vector2, heading: float, scan_range: float, scan_
 		var node_spacing: float = Config.HEX_NODE_RADIUS * sqrt(3.0)
 		var angular_step: float = (Config.SCAN_RAY_SPACING * node_spacing) / scan_range
 		ray_count = max(2, int(ceil((2.0 * half_angle) / angular_step)) + 1)
+		# A wide, long cone wants hundreds of rays; cap it so a maxed scanner
+		# can't eat the frame (rays then sit a little wider apart far out).
+		ray_count = min(ray_count, Config.SCAN_MAX_RAYS)
 
 	var any_hit: bool = false
 	var left_end: Vector2 = ship_position
@@ -66,7 +69,11 @@ func _cast_ray(p0: Vector2, dir: Vector2, scan_range: float, scan_depth: int, as
 	var best_t: float = INF
 	var ray: Vector2 = p1 - p0
 	var ray_len_sq: float = ray.length_squared()
-	for entry in asteroid_entries:
+	# Only rocks near the ray's line (game/rock_grid.gd), when the grid is live.
+	var candidates: Array = asteroid_entries
+	if RockGrid.current != null:
+		candidates = RockGrid.current.query_segment(p0, p1)
+	for entry in candidates:
 		var graph: AsteroidGraph = entry.graph
 		var origin: Vector2 = entry.view.position
 		# Cheap cull: skip rocks the ray can't come within reach of.

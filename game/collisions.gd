@@ -26,6 +26,10 @@ static func find_impact(prev_pos: Vector2, new_pos: Vector2, fatal_bodies: Array
 	var delta: Vector2 = new_pos - prev_pos
 	var dist: float = delta.length()
 	var hops: int = maxi(1, ceili(dist / ship_radius))
+	# Only rocks near this move (game/rock_grid.gd), when the grid is live.
+	var rocks: Array = asteroid_entries
+	if RockGrid.current != null:
+		rocks = RockGrid.current.query_segment(prev_pos, new_pos, ship_radius)
 	for i in range(1, hops + 1):
 		var p: Vector2 = prev_pos + delta * (float(i) / float(hops))
 		for body in fatal_bodies:
@@ -33,7 +37,7 @@ static func find_impact(prev_pos: Vector2, new_pos: Vector2, fatal_bodies: Array
 				continue
 			if p.distance_to(body.position) <= body.body_radius + ship_radius:
 				return true
-		for entry in asteroid_entries:
+		for entry in rocks:
 			var graph: AsteroidGraph = entry.graph
 			if p.distance_to(entry.view.position) > graph.bounding_radius + ship_radius:
 				continue

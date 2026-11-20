@@ -117,7 +117,11 @@ static func _find_hit(p0: Vector2, p1: Vector2, asteroid_entries: Array, laser_t
 	var move_len: float = p0.distance_to(p1)
 	var best: Dictionary = {}
 	var best_dist_along: float = INF
-	for entry in asteroid_entries:
+	# Only rocks near this move (game/rock_grid.gd), when the grid is live.
+	var candidates: Array = asteroid_entries
+	if RockGrid.current != null:
+		candidates = RockGrid.current.query_segment(p0, p1, Config.BOLT_HIT_RADIUS)
+	for entry in candidates:
 		var graph: AsteroidGraph = entry.graph
 		var origin: Vector2 = entry.view.position
 		# Cheap cull before walking every edge of every rock: the rock's own

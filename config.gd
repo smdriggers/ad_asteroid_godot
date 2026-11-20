@@ -326,7 +326,8 @@ const TRACTOR_RING_FLATNESS: float = 0.35   # ring depth along the beam / its wi
 # --- Scanning (DESIGN.md §11) ---
 # Range, depth and width are tiered now (game/upgrades.gd's "scan_range",
 # "scan_depth", "scan_width"), starting at that table's tier 0 values.
-const SCAN_RAY_SPACING: float = 0.5       # node spacings between neighboring cone rays, at scan_range — DESIGN.md §11.2
+const SCAN_MAX_RAYS: int = 64            # cap on rays per scan; a maxed cone (90 deg, 2200 range) would otherwise cast ~330
+const SCAN_RAY_SPACING: float = 0.5      # node spacings between neighboring cone rays, at scan_range — DESIGN.md §11.2
 const SCAN_PULSE_FLASH_TIME: float = 0.15 # seconds an automatic pulse's beam stays drawn — DESIGN.md §11.3
 const SCAN_BEAM_COLOR: Color = Color(0.4, 1.0, 1.0)
 

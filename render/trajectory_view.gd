@@ -5,8 +5,14 @@ extends Node2D
 # Star/Planet/Station/Ship, so it draws in the same world space as those —
 # no extra transform needed.
 
+var _drawn_result = null
+
 func _process(_delta: float) -> void:
-	queue_redraw()
+	# Redraw only when main.gd has computed a new path (or hidden it).
+	var result = get_parent().trajectory_result
+	if result != _drawn_result:
+		_drawn_result = result
+		queue_redraw()
 
 func _draw() -> void:
 	var main = get_parent()

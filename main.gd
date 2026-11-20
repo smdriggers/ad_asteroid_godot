@@ -28,6 +28,7 @@ var fatal_bodies: Array = []
 var trajectory_result: Trajectory.Result = null
 var intro_pending: bool = false  # a new system was built while docked: play the opening shot on the next launch
 var system_seed: int = 0  # seed the current level's asteroids were built from (see setup_asteroids)
+var trajectory_tick: int = 0    # physics ticks since the path was last recomputed
 var show_trajectory: bool = true  # toggled by T or the PATH button; off also skips the simulation
 
 func toggle_trajectory() -> void:
@@ -35,6 +36,7 @@ func toggle_trajectory() -> void:
 	if not show_trajectory:
 		trajectory_result = null
 var asteroid_views: Array = []  # Array of {"view": Node2D, "orbit": OrbitBody}
+var rock_entries: Array = []    # the same rocks as {"view","graph"}, for collisions/bolts/scans; built once per system
 
 var bolt_laser: BoltLaser = BoltLaser.new()
 var bolts: Array = []   # Array of {"position", "velocity", "damage", "life"}
@@ -362,9 +364,7 @@ func _physics_process(delta: float) -> void:
 		entry.view.position = entry.orbit.position_at(world_time)
 		entry.view.world_time = world_time  # drives the near-death pulse — DESIGN.md §16.2
 
-	var asteroid_entries: Array = []
-	for entry in asteroid_views:
-		asteroid_entries.append({"view": entry.view, "graph": entry.view.graph})
+	var asteroid_entries: Array = rock_entries  # built once per system in setup_asteroids()
 
 	var turn_input: float = PlayerInput.turn_input()
 	var local_thrust: Vector2 = PlayerInput.local_thrust()
@@ -402,7 +402,11 @@ func _physics_process(delta: float) -> void:
 	thrust_puffs.append_array(strafe_puffs.puffs)
 	puff_carry_strafe = strafe_puffs.carry
 
-	if show_trajectory:
+	# The path only needs refreshing every few ticks; between refreshes the
+	# last one is still drawn (the ship moves a pixel or two in between).
+	trajectory_tick += 1
+	if show_trajectory and (trajectory_result == null or trajectory_tick >= Config.TRAJECTORY_EVERY_TICKS):
+		trajectory_tick = 0
 		trajectory_result = Trajectory.simulate(ship.position, ship.velocity, world_time, gravity_bodies)
 
 	# G toggles mine/scan mode — DESIGN.md §11.1. Edge-detected so holding
@@ -684,6 +688,7 @@ func _jump_to_level(next_level: int) -> void:
 		entry.view.queue_free()
 		entry.orbit.free()  # never added to the tree, so queue_free wouldn't reach it: free it directly
 	asteroid_views.clear()
+	rock_entries.clear()
 
 	for comp in competitors:
 		comp.queue_free()
@@ -857,6 +862,7 @@ func setup_asteroids() -> void:
 		view.position = orbit.position_at(world_time)
 
 		asteroid_views.append({"view": view, "orbit": orbit})
+		rock_entries.append({"view": view, "graph": view.graph})
 
 	nodes_at_spawn = total_nodes
 	ore_fraction = 1.0
@@ -911,6 +917,7 @@ func _restart_game() -> void:
 		entry.view.queue_free()
 		entry.orbit.free()  # never added to the tree, so queue_free wouldn't reach it: free it directly
 	asteroid_views.clear()
+	rock_entries.clear()
 
 	for comp in competitors:
 		comp.queue_free()

@@ -48,18 +48,22 @@ static func simulate(ship_pos: Vector2, ship_vel: Vector2, world_time: float, bo
 	var crash_step: int = -1
 	var crash_body: OrbitBody = null
 
+	# One snapshot per body, reused every step (only position changes);
+	# making fresh ones each step cost hundreds of allocations per frame.
+	var snapshots: Array = []
+	for body in bodies:
+		var snap := BodySnapshot.new()
+		snap.mass = body.mass
+		snap.gravity_radius = body.gravity_radius
+		snap.body_radius = body.body_radius
+		snapshots.append(snap)
+
 	for step in range(1, Config.TRAJECTORY_STEPS + 1):
 		var t: float = world_time + step * dt
 		var tau: float = step * dt
 
-		var snapshots: Array = []
-		for body in bodies:
-			var snap := BodySnapshot.new()
-			snap.position = body.position_at(t)
-			snap.mass = body.mass
-			snap.gravity_radius = body.gravity_radius
-			snap.body_radius = body.body_radius
-			snapshots.append(snap)
+		for bi in range(bodies.size()):
+			snapshots[bi].position = bodies[bi].position_at(t)
 
 		var accel: Vector2 = Gravity.acceleration(pos, snapshots)
 		var prev_pos: Vector2 = pos

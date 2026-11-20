@@ -64,13 +64,18 @@ func _cast_ray(p0: Vector2, dir: Vector2, scan_range: float, scan_depth: int, as
 
 	var best_entry: Dictionary = {}
 	var best_t: float = INF
+	var ray: Vector2 = p1 - p0
+	var ray_len_sq: float = ray.length_squared()
 	for entry in asteroid_entries:
 		var graph: AsteroidGraph = entry.graph
 		var origin: Vector2 = entry.view.position
-		for key in graph.exterior_edges.keys():
-			var n: Array = AsteroidGraph.edge_nodes(key)
-			var a: Vector2 = origin + AsteroidGraph.node_offset(n[0], Config.HEX_NODE_RADIUS)
-			var b: Vector2 = origin + AsteroidGraph.node_offset(n[1], Config.HEX_NODE_RADIUS)
+		# Cheap cull: skip rocks the ray can't come within reach of.
+		var along: float = clampf((origin - p0).dot(ray) / ray_len_sq, 0.0, 1.0) if ray_len_sq > 0.0 else 0.0
+		if (p0 + ray * along).distance_squared_to(origin) > graph.bounding_radius * graph.bounding_radius:
+			continue
+		for i in range(graph.exterior_a.size()):
+			var a: Vector2 = origin + graph.exterior_a[i]
+			var b: Vector2 = origin + graph.exterior_b[i]
 			var t: float = _ray_segment_t(p0, p1, a, b)
 			if t >= 0.0 and t < best_t:
 				best_t = t

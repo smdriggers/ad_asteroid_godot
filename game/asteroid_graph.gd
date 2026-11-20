@@ -18,6 +18,14 @@ const CENTER: Vector2i = Vector2i(0, 0)
 var nodes: Dictionary = {}           # Vector2i -> true
 var edges: Dictionary = {}           # edge key (see edge_key) -> true
 var exterior_edges: Dictionary = {}  # cached; recomputed only when edges/nodes actually change
+# The same exterior edges as parallel arrays, with both endpoints already
+# worked out (local offsets) and the owner node: hot loops (bolt hits,
+# collisions, competitor targeting, drawing) read these instead of
+# re-parsing every edge's string key each time.
+var exterior_keys: PackedStringArray = PackedStringArray()
+var exterior_a: PackedVector2Array = PackedVector2Array()
+var exterior_b: PackedVector2Array = PackedVector2Array()
+var exterior_owner: Array = []       # Vector2i per exterior edge
 var node_material: Dictionary = {}   # Vector2i -> material id (game/materials.gd)
 var node_hp: Dictionary = {}         # Vector2i -> float HP
 var edge_owner: Dictionary = {}      # edge key -> owner Vector2i (DESIGN.md §7.9)
@@ -174,6 +182,7 @@ func assign_edge_ownership() -> void:
 		owned_count[owner] = owned_count.get(owner, 0) + 1
 
 	_give_center_an_edge(owned_count)
+	refresh_exterior_owners()
 
 func _give_center_an_edge(owned_count: Dictionary) -> void:
 	if owned_count.get(CENTER, 0) > 0 or not nodes.has(CENTER):
@@ -298,11 +307,8 @@ func circle_touches(origin: Vector2, center: Vector2, radius: float) -> bool:
 		if off.distance_squared_to(local) <= reach_sq:
 			return true
 	var radius_sq: float = radius * radius
-	for key in exterior_edges.keys():
-		var n: Array = edge_nodes(key)
-		var a: Vector2 = node_offset(n[0], Config.HEX_NODE_RADIUS)
-		var b: Vector2 = node_offset(n[1], Config.HEX_NODE_RADIUS)
-		if _point_segment_distance_sq(local, a, b) <= radius_sq:
+	for i in range(exterior_a.size()):
+		if _point_segment_distance_sq(local, exterior_a[i], exterior_b[i]) <= radius_sq:
 			return true
 	return false
 
@@ -318,12 +324,29 @@ func _recompute_exterior() -> void:
 	# An edge is exterior if at least one of its two flank cells is
 	# empty — DESIGN.md §7.2.
 	exterior_edges.clear()
+	exterior_keys = PackedStringArray()
+	exterior_a = PackedVector2Array()
+	exterior_b = PackedVector2Array()
+	exterior_owner = []
 	for key in edges.keys():
 		var n: Array = edge_nodes(key)
 		var fl: Array = flanks(n[0], n[1])
 		if not nodes.has(fl[0]) or not nodes.has(fl[1]):
 			exterior_edges[key] = true
+			exterior_keys.append(key)
+			exterior_a.append(node_offset(n[0], Config.HEX_NODE_RADIUS))
+			exterior_b.append(node_offset(n[1], Config.HEX_NODE_RADIUS))
+			exterior_owner.append(n[0])  # placeholder until refresh_exterior_owners() (ownership is assigned after generation)
 	_forget_stale_edges()
+	refresh_exterior_owners()
+
+func refresh_exterior_owners() -> void:
+	# Fills exterior_owner from edge_owner (falls back to the edge's first
+	# node, as every caller did before). Called after ownership changes.
+	for i in range(exterior_keys.size()):
+		var key: String = exterior_keys[i]
+		if edge_owner.has(key):
+			exterior_owner[i] = edge_owner[key]
 
 func _forget_stale_edges() -> void:
 	# Mining can remove an edge entirely (build_edges()/settle() both end

@@ -120,14 +120,14 @@ static func _find_hit(p0: Vector2, p1: Vector2, asteroid_entries: Array, laser_t
 	for entry in asteroid_entries:
 		var graph: AsteroidGraph = entry.graph
 		var origin: Vector2 = entry.view.position
-		# Cheap cull before walking every edge of every rock.
-		var rough_radius: float = Config.HEX_NODE_RADIUS * 20.0
-		if p0.distance_to(origin) > rough_radius + move_len and p1.distance_to(origin) > rough_radius + move_len:
+		# Cheap cull before walking every edge of every rock: the rock's own
+		# bounding radius (plus the hit capsule), not a fixed guess.
+		var reach: float = graph.bounding_radius + Config.BOLT_HIT_RADIUS + move_len
+		if p0.distance_squared_to(origin) > reach * reach:
 			continue
-		for key in graph.exterior_edges.keys():
-			var n: Array = AsteroidGraph.edge_nodes(key)
-			var a: Vector2 = origin + AsteroidGraph.node_offset(n[0], Config.HEX_NODE_RADIUS)
-			var b: Vector2 = origin + AsteroidGraph.node_offset(n[1], Config.HEX_NODE_RADIUS)
+		for i in range(graph.exterior_a.size()):
+			var a: Vector2 = origin + graph.exterior_a[i]
+			var b: Vector2 = origin + graph.exterior_b[i]
 			var dist: float = _segment_distance(p0, p1, a, b)
 			if dist <= Config.BOLT_HIT_RADIUS:
 				var hit_point: Vector2 = (a + b) / 2.0
@@ -135,7 +135,7 @@ static func _find_hit(p0: Vector2, p1: Vector2, asteroid_entries: Array, laser_t
 				var along: float = p0.distance_to(closest_on_bolt)
 				if along < best_dist_along:
 					best_dist_along = along
-					var owner: Vector2i = graph.edge_owner.get(key, n[0])
+					var owner: Vector2i = graph.exterior_owner[i]
 					var mat: int = graph.node_material.get(owner, Materials.IRON)
 					best = {
 						"graph": graph,

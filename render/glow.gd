@@ -11,20 +11,36 @@ class_name Glow
 # takes the CanvasItem to draw on and an optional `strength` (1 = normal;
 # the star uses more, the tractor rings less).
 
+# The world view (visible rect in world units, and zoom) is the same for
+# every world-space item in a frame, so it's worked out once per frame and
+# shared — hundreds of asteroids ask every frame.
+static var _view_frame: int = -1
+static var _view_rect: Rect2 = Rect2()
+static var _view_zoom: float = 1.0
+
+static func _refresh_view(ci: CanvasItem) -> void:
+	var frame: int = Engine.get_process_frames()
+	if frame == _view_frame:
+		return
+	_view_frame = frame
+	var vp: Viewport = ci.get_viewport()
+	var xf: Transform2D = vp.get_canvas_transform()
+	_view_zoom = xf.get_scale().x
+	_view_rect = xf.affine_inverse() * Rect2(Vector2.ZERO, vp.get_visible_rect().size)
+
 static func on_screen(ci: Node2D, radius: float) -> bool:
 	# Whether a circle of `radius` (world units) round this item's position
 	# is at least partly in view, counting the glow's halo. Used to skip
-	# rebuilding drawings nobody can see.
-	var vp: Viewport = ci.get_viewport()
-	var to_world: Transform2D = vp.get_canvas_transform().affine_inverse()
-	var view: Rect2 = to_world * Rect2(Vector2.ZERO, vp.get_visible_rect().size)
-	var margin: float = Config.ON_SCREEN_MARGIN_PX / vp.get_canvas_transform().get_scale().x
-	return view.grow(radius + margin).has_point(ci.global_position)
+	# rebuilding drawings nobody can see. World-space items only.
+	_refresh_view(ci)
+	var margin: float = Config.ON_SCREEN_MARGIN_PX / _view_zoom
+	return _view_rect.grow(radius + margin).has_point(ci.global_position)
 
 static func zoom_of(ci: CanvasItem) -> float:
-	# The camera's zoom as seen by this item; drawings sized in screen px
-	# (glow, tubes) must be rebuilt when this changes.
-	return ci.get_global_transform_with_canvas().get_scale().x
+	# The camera's zoom (for world-space items); drawings sized in screen
+	# px (glow, tubes) must be rebuilt when this changes.
+	_refresh_view(ci)
+	return _view_zoom
 
 static func _px(ci: CanvasItem) -> float:
 	# World units per screen px at this item (1 / the camera's zoom).

@@ -260,16 +260,13 @@ static func nearest_target_edge(graph: AsteroidGraph, asteroid_pos: Vector2, poi
 	var best = null
 	var best_dist: float = INF
 	var best_key: String = ""
-	for key in graph.exterior_edges.keys():
-		var n: Array = AsteroidGraph.edge_nodes(key)
+	for i in range(graph.exterior_keys.size()):
+		var key: String = graph.exterior_keys[i]
 		if max_hardness != null:
-			var owner: Vector2i = graph.edge_owner.get(key, n[0])
-			var mat: int = graph.node_material.get(owner, Materials.IRON)
+			var mat: int = graph.node_material.get(graph.exterior_owner[i], Materials.IRON)
 			if Materials.hardness(mat) > max_hardness:
 				continue
-		var a: Vector2 = AsteroidGraph.node_offset(n[0], Config.HEX_NODE_RADIUS)
-		var b: Vector2 = AsteroidGraph.node_offset(n[1], Config.HEX_NODE_RADIUS)
-		var mid: Vector2 = asteroid_pos + (a + b) / 2.0
+		var mid: Vector2 = asteroid_pos + (graph.exterior_a[i] + graph.exterior_b[i]) / 2.0
 		var dist: float = mid.distance_to(point)
 		if best == null or dist < best_dist or (dist == best_dist and key < best_key):
 			best = {"edge": key, "mid": mid, "dist": dist}

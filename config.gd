@@ -11,6 +11,7 @@ const SIM_DT: float = 1.0 / 60.0   # fixed sim step; must match Project Settings
 # --- Trajectory preview ---
 const TRAJECTORY_STEPS: int = 300            # how many SIM_DT steps ahead to coast — DESIGN.md §5 (5s at 60Hz; tune in playtesting)
 const TRAJECTORY_DOT_EVERY: int = 5          # draw every Nth simulated point as a dot
+const TRAJECTORY_EVERY_TICKS: int = 3        # recompute the path every Nth physics tick (20/sec); it's drawn every frame either way
 const TRAJECTORY_DOT_COLOR: Color = Color(0.6, 0.6, 0.6)
 const TRAJECTORY_CRASH_COLOR: Color = Color(1.0, 0.2, 0.2)
 const TRAJECTORY_X_SIZE: float = 8.0         # px; half-width of the crash X

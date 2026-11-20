@@ -126,11 +126,11 @@ const SYSTEM_SEED: int = -1
 # touches its planet's range, and level 2's first two belts were widened
 # down to 150 of clearance to fit their doubled rock counts.
 const BELT_CLEARANCE: float = 300.0
-# Asteroid spacing (game/system_gen.gd _place_all): rocks sit in orbital
-# lanes so they can never drift into each other. A rock that finds no
-# room in its belt is left out (the console says how many fit).
-const ASTEROID_SPACING: float = 20.0       # world px of clear space kept between rocks' outer edges
-const ASTEROID_PLACEMENT_TRIES: int = 12   # random radii tried per rock when starting a new lane
+# Asteroid spacing (game/system_gen.gd _place_all): each rock starts at a
+# random spot in its belt, retried until it isn't built on top of another.
+# Only the starting layout is checked; rocks may drift into each other later.
+const ASTEROID_SPACING: float = 20.0       # world px of clear space wanted between rocks' edges at the start
+const ASTEROID_PLACEMENT_TRIES: int = 40   # random spots tried per rock; if none is clear, the roomiest one tried is used
 
 # --- Levels (DESIGN.md §3.4) ---
 # Each level is its own solar system, all at the same scale. main.gd reads
